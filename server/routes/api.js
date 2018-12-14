@@ -352,4 +352,18 @@ router.post('/update_profile', (req, res) => {
 
 });
 
+//////////////////////// CREA INFORMACIÓN PARA UNA NUEVA PARTIDA /////////////////////////////////////////////////
+router.post('/new_game', (req, res) => {
+
+  //console.log(req.body.params.updates[0].value);
+  for(var i =0;i<req.body.params.updates.length;i++){
+    console.log(req.body.params.updates[i].value);
+  }
+  
+  res.status(200).send({text:'Exito',status:200});
+
+
+});
+
+
 module.exports = router;
