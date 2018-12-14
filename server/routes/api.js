@@ -355,12 +355,27 @@ router.post('/update_profile', (req, res) => {
 //////////////////////// CREA INFORMACIÓN PARA UNA NUEVA PARTIDA /////////////////////////////////////////////////
 router.post('/new_game', (req, res) => {
 
+
   //console.log(req.body.params.updates[0].value);
-  for(var i =0;i<req.body.params.updates.length;i++){
-    console.log(req.body.params.updates[i].value);
-  }
-  
-  res.status(200).send({text:'Exito',status:200});
+  var username = req.body.params.updates[0].value;
+  var gameName = req.body.params.updates[1].value;
+  var sport = req.body.params.updates[2].value;
+  var maxPlayers = req.body.params.updates[3].value;
+  var date = req.body.params.updates[4].value;
+  var address = req.body.params.updates[5].value;
+
+  User.findOne({userName: username, gameName: gameName}, (err, doc) => {
+
+        if (err){
+          res.status(500).send({ text: 'Server Error', status: 500 });
+          return handleError(err);
+        } 
+        //console.log(user);
+        res.status(200).send({text:'Partida ya existente',status:200})
+        
+  });
+
+  //res.status(200).send({text:'Exito',status:200});
 
 
 });
