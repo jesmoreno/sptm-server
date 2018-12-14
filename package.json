@@ -1,0 +1,28 @@
+{
+  "name": "sptm-server",
+  "version": "1.0.0",
+  "description": "servidor de la aplicacion de deportes",
+  "main": "app.js",
+  "scripts": {
+    "start": "nodemon app.js",
+    "test": "ng test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "sptm-server"
+  },
+  "keywords": [
+    "['server']"
+  ],
+  "author": "Jesús Moreno",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2",
+    "express-jwt": "^5.3.0",
+    "http": "0.0.0",
+    "jsonwebtoken": "^8.1.1",
+    "mongoose": "^5.0.7",
+    "path": "^0.12.7"
+  }
+}
