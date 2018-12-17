@@ -357,6 +357,9 @@ router.post('/new_game', (req, res) => {
 
 
   //console.log(req.body.params.updates[0].value);
+
+  
+
   var username = req.body.params.updates[0].value;
   var gameName = req.body.params.updates[1].value;
   var sport = req.body.params.updates[2].value;
@@ -364,20 +367,46 @@ router.post('/new_game', (req, res) => {
   var date = req.body.params.updates[4].value;
   var address = req.body.params.updates[5].value;
 
-  User.findOne({userName: username, gameName: gameName}, (err, doc) => {
+
+  User.find({games: {$elemMatch: {creator:username,name:gameName}}}, (err, doc) => {
 
         if (err){
           res.status(500).send({ text: 'Server Error', status: 500 });
           return handleError(err);
         } 
-        //console.log(user);
-        res.status(200).send({text:'Partida ya existente',status:200})
-        
+        console.log(doc);
+
+        if(doc.length){
+          res.status(200).send({text:'Nombre de partida ya existente, por favor, introduce uno nuevo.',status:200})
+        }else{
+
+          var obj = {
+            creator: username,
+            name: gameName,
+            sport: sport,
+            maxPlayers: maxPlayers,
+            date: new Date(date),
+            address: address,
+            players: [{
+              playerName: username
+            }]
+          }
+
+
+          var conditions = {userName: username}, update = { $push: {games:obj}}, options = {multi: false};
+          User.update(conditions, update,options,callback);
+
+          function callback (err, data){
+           if (err){
+              res.status(500).send({ text: 'Server Error', status: 500 });
+              return handleError(err);
+            }
+            //Actualizada correctamente la BBDD con la partida creada.
+            res.status(200).send({text:'Partida creada correctamente.',status:200});
+          }
+    
+        }   
   });
-
-  //res.status(200).send({text:'Exito',status:200});
-
-
 });
 
 

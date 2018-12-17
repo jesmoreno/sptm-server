@@ -11,5 +11,16 @@ module.exports = mongoose.model('User', new Schema({
     city: String,
     registryDate: Date,
     admin: Boolean,
-    friends: [String]
+    friends: [String],
+    games: [{
+    	creator: String,
+    	name: String,
+    	sport: String,
+    	maxPlayers: Number,
+    	date: Date,
+    	address: String,
+    	players: [{
+    		playerName: String
+    	}]
+    }]
 }));
