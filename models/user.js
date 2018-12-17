@@ -13,7 +13,7 @@ module.exports = mongoose.model('User', new Schema({
     admin: Boolean,
     friends: [String],
     games: [{
-    	creator: String,
+    	host: String,
     	name: String,
     	sport: String,
     	maxPlayers: Number,

@@ -368,7 +368,7 @@ router.post('/new_game', (req, res) => {
   var address = req.body.params.updates[5].value;
 
 
-  User.find({games: {$elemMatch: {creator:username,name:gameName}}}, (err, doc) => {
+  User.find({games: {$elemMatch: {host:username,name:gameName}}}, (err, doc) => {
 
         if (err){
           res.status(500).send({ text: 'Server Error', status: 500 });
@@ -377,11 +377,11 @@ router.post('/new_game', (req, res) => {
         console.log(doc);
 
         if(doc.length){
-          res.status(200).send({text:'Nombre de partida ya existente, por favor, introduce uno nuevo.',status:200})
+          res.status(403).send({text:'Nombre de partida ya existente, por favor, introduce uno nuevo.',status:403})
         }else{
 
           var obj = {
-            creator: username,
+            host: username,
             name: gameName,
             sport: sport,
             maxPlayers: maxPlayers,
