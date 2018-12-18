@@ -362,10 +362,6 @@ router.post('/update_profile', (req, res) => {
 router.post('/new_game', (req, res) => {
 
 
-  //console.log(req.body.params.updates[0].value);
-
-  
-
   var username = req.body.params.updates[0].value;
   var gameName = req.body.params.updates[1].value;
   var sport = req.body.params.updates[2].value;
@@ -376,11 +372,12 @@ router.post('/new_game', (req, res) => {
 
   User.find({games: {$elemMatch: {host:username,name:gameName}}}, (err, doc) => {
 
+
         if (err){
           res.status(500).send({ text: 'Server Error', status: 500 });
+          
           return handleError(err);
         } 
-        console.log(doc);
 
         if(doc.length){
           res.status(403).send({text:'Nombre de partida ya existente, por favor, introduce uno nuevo.',status:403})
@@ -392,12 +389,18 @@ router.post('/new_game', (req, res) => {
             sport: sport,
             maxPlayers: maxPlayers,
             date: new Date(date),
-            address: address,
+            address: {
+              formatted_address: address.formatted_address,
+              location: {
+                type: 'Point',
+                coordinates: [address.geometry.location.lng, address.geometry.location.lat]
+              },
+              place_id: address.place_id
+            },
             players: [{
               playerName: username
             }]
           }
-
 
           var conditions = {userName: username}, update = { $push: {games:obj}}, options = {multi: false};
           User.update(conditions, update,options,callback);

@@ -1,8 +1,20 @@
 // get an instance of mongoose and mongoose.Schema
 var mongoose = require('mongoose');
-require('mongoose-double')(mongoose);
-var SchemaTypes = mongoose.Schema.Types;
 var Schema = mongoose.Schema;
+
+
+const pointSchema = new mongoose.Schema({
+  type: {
+    type: String,
+    enum: ['Point'],
+    required: true
+  },
+  coordinates: {
+    type: [Number],
+    required: true
+  }
+});
+
 
 // set up a mongoose model and pass it using module.exports
 module.exports = mongoose.model('User', new Schema({ 
@@ -22,11 +34,7 @@ module.exports = mongoose.model('User', new Schema({
     	date: Date,
     	address: {
     		formatted_address: String,
-    		location: {
-    			lat: SchemaTypes.Double,
-    			lng: SchemaTypes.Double
-
-    		},
+    		location: pointSchema,
     		place_id: String
     	},
     	players: [{
