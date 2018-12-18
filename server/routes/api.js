@@ -6,18 +6,19 @@ const jwt = require( 'jsonwebtoken' );
 
 
 ////////////////////////////////////////////////////////////* GETs *////////////////////////////////////////////////////
-router.get('/games_info', (req, res) => {
-  console.log('recived');
-  //res.status(200).send({});
-});
-
-
-//Devuelve informacion sobre las partidas de un jugador
 router.get('/', (req, res) => {
   res.send('api works');
 });
 
+//Devuelve las partidas de un jugador
+router.get('/games_info', (req, res) => {
 
+  var userName = req.query.userName;
+  var numElements = req.query.elements;
+
+  console.log(req.query);
+  res.status(200).send(new Array());
+});
 //Devuelve todos los usuarios disponibles para agregar a amigos
 router.get('/friends', (req, res) => {
   
