@@ -16,9 +16,14 @@ router.get('/games_info', (req, res) => {
   var userName = req.query.userName;
   var numElements = req.query.elements;
 
+  User.find({userName: userName})
+
   console.log(req.query);
   res.status(200).send(new Array());
 });
+
+
+
 //Devuelve todos los usuarios disponibles para agregar a amigos
 router.get('/friends', (req, res) => {
   
@@ -391,10 +396,11 @@ router.post('/new_game', (req, res) => {
             maxPlayers: maxPlayers,
             date: new Date(date),
             address: {
+              address_components: address.address_components,
               formatted_address: address.formatted_address,
               location: {
                 type: 'Point',
-                coordinates: [address.geometry.location.lng, address.geometry.location.lat]
+                coordinates: [address.geometry.location.coordinates[1], address.geometry.location.coordinates[0]]
               },
               place_id: address.place_id
             },
