@@ -120,7 +120,8 @@ router.get('/user_info', (req, res) => {
       name: userInfo.userName,
       email: userInfo.email,
       favSport: userInfo.sport,
-      city: userInfo.city
+      city: userInfo.city,
+      postCode: userInfo.postCode
     };
 
     res.status(200).send(info);
