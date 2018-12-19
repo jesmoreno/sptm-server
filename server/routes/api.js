@@ -132,8 +132,16 @@ router.get('/user_info', (req, res) => {
 /////////////////////////////////////////////////////// POSTS ///////////////////////////////////////////////////////////////////////////
 router.post('/register-user', (req, res) => {
 
-  //console.log(req.body);
-  User.count({email:req.body.email}, (err,  count) => {
+  //console.log(req.body.params.updates)
+  var name = req.body.params.updates[0].value;
+  var email = req.body.params.updates[1].value;
+  var passwd = req.body.params.updates[2].value;
+  var sport = req.body.params.updates[3].value;
+  var city = req.body.params.updates[4].value;
+  var pc = req.body.params.updates[5].value;
+
+
+  User.count({email:email}, (err,  count) => {
 
     if (err){
       throw err;
@@ -147,7 +155,7 @@ router.post('/register-user', (req, res) => {
 
     if(count === 0){
       //console.log('No existe el email');
-      User.count({userName:req.body.name}, (err,  count) => {
+      User.count({userName: name}, (err,  count) => {
         if (err){
           throw err;
           res.status(500).send({ text: 'Server Error', status: 500 });
@@ -158,11 +166,12 @@ router.post('/register-user', (req, res) => {
           //console.log('No existe el nombre de usuario e inserto en BBDD');
           
           var user = new User({
-            userName: req.body.name, 
-            password: req.body.password, 
-            email: req.body.email,
-            sport: req.body.favSport,
-            city: req.body.city, 
+            userName: name, 
+            password: passwd, 
+            email: email,
+            sport: sport,
+            city: city, 
+            postCode: pc,
             registryDate : Date.now(),
             admin: false,
             friends: [String]
