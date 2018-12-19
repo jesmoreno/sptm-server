@@ -33,6 +33,11 @@ module.exports = mongoose.model('User', new Schema({
     	maxPlayers: Number,
     	date: Date,
     	address: {
+            address_components: [{
+                long_name: String,
+                short_name: String,
+                types: [String]
+            }],
     		formatted_address: String,
     		location: pointSchema,
     		place_id: String
