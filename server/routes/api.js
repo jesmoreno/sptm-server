@@ -10,16 +10,38 @@ router.get('/', (req, res) => {
   res.send('api works');
 });
 
-//Devuelve las partidas de un jugador
+//Recibe como parametros el nombre de usuario, numero de elementos a devolver,codigo postal y ciudad
 router.get('/games_info', (req, res) => {
 
-  var userName = req.query.userName;
+  var userName;
+  req.query.userName ? username=req.query.userName : null;
   var numElements = req.query.elements;
-
-  User.find({userName: userName})
+  var city = req.query.city;
+  var pc = req.query.postCode;
+  var sport = req.query.sport;
 
   console.log(req.query);
-  res.status(200).send(new Array());
+  //Si recibe nombre de usuario filtra las partidas de ese usuario en la localizacion indicada con ciudad y CP y con el deporte elegido (inicialmente el favorito del usuario)
+  if(userName){
+    User.find({$and: [{userName: userName},{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
+    if (err){
+      res.status(500).send({ text: 'Server Error', status: 500 });
+      throw err;     
+    } 
+    
+    res.status(200).send(docs[0].games);
+    })
+  }else{//Si el nombre de usuario es null o undefined, devuelvo todas las partidas de la localizacion (ciudad y CP lo indican) del deporte elegido
+    User.find({$and: [{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
+    if (err){
+      res.status(500).send({ text: 'Server Error', status: 500 });
+      throw err;     
+    } 
+
+    console.log(docs);
+    res.status(200).send(docs);
+    })
+  }
 });
 
 
