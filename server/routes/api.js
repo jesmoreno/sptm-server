@@ -14,7 +14,7 @@ router.get('/', (req, res) => {
 router.get('/games_info', (req, res) => {
 
   var userName;
-  req.query.userName ? username=req.query.userName : null;
+  req.query.userName ? userName=req.query.userName : null;
   var numElements = req.query.elements;
   var city = req.query.city;
   var pc = req.query.postCode;
@@ -29,6 +29,8 @@ router.get('/games_info', (req, res) => {
       throw err;     
     } 
     
+    //console.log('Nombre de usuario')
+
     res.status(200).send(docs[0].games);
     })
   }else{//Si el nombre de usuario es null o undefined, devuelvo todas las partidas de la localizacion (ciudad y CP lo indican) del deporte elegido
@@ -38,7 +40,8 @@ router.get('/games_info', (req, res) => {
       throw err;     
     } 
 
-    console.log(docs);
+    //console.log('Sin nombre de usuario');
+    //Devuelvo array con todos los documentos
     res.status(200).send(docs);
     })
   }
