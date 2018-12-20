@@ -30,8 +30,11 @@ router.get('/games_info', (req, res) => {
     } 
     
     //console.log('Nombre de usuario')
-
-    res.status(200).send(docs[0].games);
+    console.log(docs);
+    const games;
+    docs.length ? games = docs[0].games : games = docs;
+    
+    res.status(200).send(games);
     })
   }else{//Si el nombre de usuario es null o undefined, devuelvo todas las partidas de la localizacion (ciudad y CP lo indican) del deporte elegido
     User.find({$and: [{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
