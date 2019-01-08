@@ -29,9 +29,9 @@ router.get('/games_info', (req, res) => {
       throw err;     
     } 
     
-    //console.log('Nombre de usuario')
+    console.log('Nombre de usuario')
     console.log(docs);
-    const games;
+    var games;
     docs.length ? games = docs[0].games : games = docs;
     
     res.status(200).send(games);
