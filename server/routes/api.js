@@ -20,7 +20,7 @@ router.get('/games_info', (req, res) => {
   var pc = req.query.postCode;
   var sport = req.query.sport;
 
-  console.log(req.query);
+  //console.log(req.query);
   //Si recibe nombre de usuario filtra las partidas de ese usuario en la localizacion indicada con ciudad y CP y con el deporte elegido (inicialmente el favorito del usuario)
   if(userName){
     User.find({$and: [{userName: userName},{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
@@ -29,8 +29,8 @@ router.get('/games_info', (req, res) => {
       throw err;     
     } 
     
-    console.log('Nombre de usuario')
-    console.log(docs);
+    //console.log('Nombre de usuario')
+    //console.log(docs);
     var games;
     docs.length ? games = docs[0].games : games = docs;
     
@@ -352,7 +352,7 @@ router.post('/update_profile', (req, res) => {
         //console.log(user);
 
         if(user){// Si me devuelve el documento es que existe ya ese nombre
-          res.status(403).send({text: 'Nombre de usuario ya existente', status: 403});
+          res.status(403).send({text: 'Nombre de usuario ya existente', status: 403, errorCodeToShow: 0});
         
         }else{//No existe el nombre por lo que lo guardo
           
@@ -390,13 +390,26 @@ router.post('/update_profile', (req, res) => {
       res.status(200).send({text: 'Perfil actualizado', status: 200});
     }
 
-  }else{// es la ciudad el caso restante
+  }else if(field === 'city'){// es la ciudad
 
     var conditions = {userName: username}, update = { $set: {"city":data}}, options = {multi: false};
     User.update(conditions, update,options,callback);
     function callback (err, data){
       if(err) return handleError(err);
       res.status(200).send({text: 'Perfil actualizado', status: 200});
+    }
+  }else{//es el codigo postal de la ciudad
+
+    console.log(typeof(data));
+    if(data.length != 5){
+      res.status(403).send({text: 'El código postal debe ser de 5 dígitos', status: 403, errorCodeToShow: 1});
+    }else{
+      var conditions = {userName: username}, update = { $set: {"postCode":data}}, options = {multi: false};
+      User.update(conditions, update,options,callback);
+      function callback (err, data){
+        if(err) return handleError(err);
+        res.status(200).send({text: 'Perfil actualizado', status: 200});
+      }
     }
   }
 

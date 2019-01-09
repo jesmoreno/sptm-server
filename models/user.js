@@ -23,7 +23,7 @@ module.exports = mongoose.model('User', new Schema({
     email: String,
     sport: String,
     city: String,
-    postCode: Number,
+    postCode: String,
     registryDate: Date,
     admin: Boolean,
     friends: [String],
