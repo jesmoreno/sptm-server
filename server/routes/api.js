@@ -23,7 +23,7 @@ router.get('/games_info', (req, res) => {
   //console.log(req.query);
   //Si recibe nombre de usuario filtra las partidas de ese usuario en la localizacion indicada con ciudad y CP y con el deporte elegido (inicialmente el favorito del usuario)
   if(userName){
-    User.find({$and: [{userName: userName},{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
+    User.find({$and: [{"games.players": {$elemMatch: {playerName: userName} }},{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
     if (err){
       res.status(500).send({ text: 'Server Error', status: 500 });
       throw err;     
