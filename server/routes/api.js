@@ -426,7 +426,6 @@ router.post('/new_game', (req, res) => {
   var date = req.body.params.updates[4].value;
   var address = req.body.params.updates[5].value;
 
-
   User.find({games: {$elemMatch: {host:username,name:gameName}}}, (err, doc) => {
 
 
