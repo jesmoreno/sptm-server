@@ -29,11 +29,19 @@ router.get('/games_info', (req, res) => {
       throw err;     
     } 
     
-    //console.log('Nombre de usuario')
-    //console.log(docs);
     var games;
     docs.length ? games = docs[0].games : games = docs;
-    
+    //console.log(games);
+    if(games.length){
+      games = games.filter(function(element){
+        if(element.sport === req.query.sport){
+          return true;
+        }else{
+          return false;
+        }
+      })  
+    }
+
     res.status(200).send(games);
     })
   }else{//Si el nombre de usuario es null o undefined, devuelvo todas las partidas de la localizacion (ciudad y CP lo indican) del deporte elegido
