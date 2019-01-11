@@ -24,39 +24,54 @@ router.get('/games_info', (req, res) => {
   //Si recibe nombre de usuario filtra las partidas de ese usuario en la localizacion indicada con ciudad y CP y con el deporte elegido (inicialmente el favorito del usuario)
   if(userGames){
     User.find({$and: [{"games.players": {$elemMatch: {playerName: userName} }},{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
-    if (err){
-      res.status(500).send({ text: 'Server Error', status: 500 });
-      throw err;     
-    } 
+      if (err){
+        res.status(500).send({ text: 'Server Error', status: 500 });
+        throw err;     
+      } 
 
-    var games;
-    docs.length ? games = docs[0].games : games = docs;
+      var games;
+      docs.length ? games = docs[0].games : games = docs;
 
-    if(games.length){
-      games = games.filter(function(element){
-        if(element.sport === req.query.sport){
-          return true;
-        }else{
-          return false;
-        }
-      })  
-    }
+      if(games.length){
+        games = games.filter(function(element){
+          if(element.sport === req.query.sport){
+            return true;
+          }else{
+            return false;
+          }
+        })  
+      }
 
-    res.status(200).send(games);
+      res.status(200).send(games);
+
     })
+
   }else{//Si el nombre de usuario es null o undefined, devuelvo todas las partidas de la localizacion (ciudad y CP lo indican) del deporte elegido
     User.find({$and: [{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
-    if (err){
-      res.status(500).send({ text: 'Server Error', status: 500 });
-      throw err;     
-    } 
+      if (err){
+        res.status(500).send({ text: 'Server Error', status: 500 });
+        throw err;     
+      } 
 
-    //var exceptions = [];
-    //exceptions.push({"games.players": {$elemMatch: {name: city}}}})
+      //var exceptions = [];
+      //exceptions.push({"games.players": {$elemMatch: {name: city}}}})
 
-    console.log(docs);
+      console.log(docs);
 
-    res.status(200).send(docs);
+      var games;
+      docs.length ? games = docs[0].games : games = docs;
+
+      if(games.length){
+        games = games.filter(function(element){
+          if(element.sport === req.query.sport){
+            return true;
+          }else{
+            return false;
+          }
+        })  
+      }
+
+      res.status(200).send(games);
     })
   }
 });
