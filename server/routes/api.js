@@ -13,25 +13,25 @@ router.get('/', (req, res) => {
 //Recibe como parametros el nombre de usuario, numero de elementos a devolver,codigo postal y ciudad
 router.get('/games_info', (req, res) => {
 
-  var userName;
-  req.query.userName ? userName=req.query.userName : null;
-  var numElements = req.query.elements;
+  var userName = req.query.userName;
+  var userGames;
+  req.query.userGames ? userGames=req.query.userGames : null;
   var city = req.query.city;
   var pc = req.query.postCode;
   var sport = req.query.sport;
 
   //console.log(req.query);
   //Si recibe nombre de usuario filtra las partidas de ese usuario en la localizacion indicada con ciudad y CP y con el deporte elegido (inicialmente el favorito del usuario)
-  if(userName){
+  if(userGames){
     User.find({$and: [{"games.players": {$elemMatch: {playerName: userName} }},{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
     if (err){
       res.status(500).send({ text: 'Server Error', status: 500 });
       throw err;     
     } 
-    
+
     var games;
     docs.length ? games = docs[0].games : games = docs;
-    //console.log(games);
+
     if(games.length){
       games = games.filter(function(element){
         if(element.sport === req.query.sport){
@@ -51,8 +51,11 @@ router.get('/games_info', (req, res) => {
       throw err;     
     } 
 
-    //console.log('Sin nombre de usuario');
-    //Devuelvo array con todos los documentos
+    //var exceptions = [];
+    //exceptions.push({"games.players": {$elemMatch: {name: city}}}})
+
+    console.log(docs);
+
     res.status(200).send(docs);
     })
   }
