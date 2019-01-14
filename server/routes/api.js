@@ -22,7 +22,7 @@ router.get('/games_info', (req, res) => {
 
   //console.log(req.query);
   //Si recibe nombre de usuario filtra las partidas de ese usuario en la localizacion indicada con ciudad y CP y con el deporte elegido (inicialmente el favorito del usuario)
-  //if(userGames){
+  if(userGames){
 
     User.find({$and: [{"games.players": {$elemMatch: {playerName: userName} }},{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
       if (err){
@@ -35,8 +35,6 @@ router.get('/games_info', (req, res) => {
 
       if(games.length){
 
-        if(userGames){//Partidas en las que está el usuario
-
           games = games.filter(function(element){
             if(element.sport === req.query.sport){
               return true;
@@ -45,49 +43,18 @@ router.get('/games_info', (req, res) => {
             }
           });
 
-        }else{//Partidas en las que no
-
-          games = games.filter(function(element){
-            if(element.sport === req.query.sport){
-
-              var found = false;
-              for(var i=0; i<element.players.length ;i++){
-                if(element.players[i].playerName === userName){
-                  found = true;
-                }
-              }
-              //Si he encontrado el nombre del usuario en la lista lo descarto porque ya está inscrito
-              if(found){
-                return false;
-              }else{
-                return true;
-              }
-
-            }else{
-              return false;
-            }
-          });
-
-        }
-          
       }
-
 
       res.status(200).send(games);
 
     })
 
-  /*}else{//Si el nombre de usuario es null o undefined, devuelvo todas las partidas de la localizacion (ciudad y CP lo indican) del deporte elegido
-    User.find({$nor: [{'games.players':{$elemMatch: {playerName: userName}}}]},{$and: [{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
+  }else{//Si el nombre de usuario es null o undefined, devuelvo todas las partidas de la localizacion (ciudad y CP lo indican) del deporte elegido
+    User.find({$nor: [{'games.players':{$elemMatch: {playerName: userName}}}], $and: [{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
       if (err){
         res.status(500).send({ text: 'Server Error', status: 500 });
         throw err;     
       } 
-
-      //var exceptions = [];
-      //exceptions.push({"games.players": {$elemMatch: {name: city}}}})
-
-      console.log(docs);
 
       var games;
       docs.length ? games = docs[0].games : games = docs;
@@ -104,7 +71,7 @@ router.get('/games_info', (req, res) => {
 
       res.status(200).send(games);
     })
-  }*/
+  }
 });
 
 
