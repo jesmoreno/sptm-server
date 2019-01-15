@@ -56,8 +56,17 @@ router.get('/games_info', (req, res) => {
         throw err;     
       } 
 
-      var games;
-      docs.length ? games = docs[0].games : games = docs;
+      var games = [];
+
+      if(docs.length){
+        
+        docs.forEach(function(doc){
+          doc.games.forEach(function(game){
+            games.push(game);
+          })
+        })
+
+      }
 
       if(games.length){
         games = games.filter(function(element){
