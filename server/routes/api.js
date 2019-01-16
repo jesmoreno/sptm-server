@@ -483,7 +483,7 @@ router.post('/new_game', (req, res) => {
               formatted_address: address.formatted_address,
               location: {
                 type: 'Point',
-                coordinates: [address.location.coordinates[1], address.location.coordinates[0]]
+                coordinates: [address.location.lng, address.location.lat]
               },
               place_id: address.place_id
             },
