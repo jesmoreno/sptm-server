@@ -506,31 +506,47 @@ router.post('/new_game', (req, res) => {
         }   
   });
 
-  ////////////////////////////// ELIMINA LA PARTIDA SELECIONADA ////////////////////////////////////// 
-
-  router.post('/remove_game', (req, res) => {
-
-
-  var username = req.body.params.updates[0].value;
-  var gameName = req.body.params.updates[1].value;
-  var sport = req.body.params.updates[2].value;
-  var maxPlayers = req.body.params.updates[3].value;
-  var date = req.body.params.updates[4].value;
-  var address = req.body.params.updates[5].value;
-
-  User.find({games: {$elemMatch: {host:username,name:gameName}}}, (err, doc) => {
-
-        if (err){
-          res.status(500).send({ text: 'Server Error', status: 500 });
-          
-          return handleError(err);
-        } 
-
-
-  });
-
-
 });
+////////////////////////////// ELIMINA LA PARTIDA SELECIONADA ////////////////////////////////////// 
+
+router.post('/remove_game', (req, res) => {
+
+  //Nombre de la partida para eliminarla del doc de cada usuario inscrito
+  var objGameName = req.body.params.updates.find(function(element){
+    return element.param === this.field;
+  },{field: 'name'});
+  var gameName = objGameName.value;
+
+  //Array de nombres de los jugadores
+  var objPlayers = req.body.params.updates.find(function(element){
+    return element.param === this.field;
+  },{field: 'players'});
+  var players = objPlayers.value;
+
+
+  console.log(gameName);
+  console.log(players);
+
+
+  /*var conditions;
+
+  players.forEach(function(user){
+    conditions = {userName: user.playerName}, update = {$pull: {games: {$elemMatch: {name: gameName.playerName}}}}, options = {multi: false};
+    User.update(conditions, update,options,callback);
+    function callback (err, data){
+      if(err) {
+        res.status(500).send({ text: 'Server Error', status: 500 });
+        return handleError(err);
+      }
+
+      res.status(200).send({text: 'Partida eliminada', status: 200});
+    }
+  })*/  
+
+  
+
+}); 
+
 
 
 module.exports = router;
