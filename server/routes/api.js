@@ -543,10 +543,17 @@ router.post('/remove_game', (req, res) => {
     }
   })*/  
 
-  
+
 
 }); 
 
+/////////////////////////////////////// CREO LA PARTIDA PARA EL USUARIO /////////////////////////////////7
 
+router.post('/update_games', (req, res) => {
+
+
+
+
+});
 
 module.exports = router;
