@@ -433,7 +433,6 @@ router.post('/update_profile', (req, res) => {
     }
   }else{//es el codigo postal de la ciudad
 
-    console.log(typeof(data));
     if(data.length != 5){
       res.status(403).send({text: 'El código postal debe ser de 5 dígitos', status: 403, errorCodeToShow: 1});
     }else{
@@ -506,6 +505,31 @@ router.post('/new_game', (req, res) => {
     
         }   
   });
+
+  ////////////////////////////// ELIMINA LA PARTIDA SELECIONADA ////////////////////////////////////// 
+
+  router.post('/remove_game', (req, res) => {
+
+
+  var username = req.body.params.updates[0].value;
+  var gameName = req.body.params.updates[1].value;
+  var sport = req.body.params.updates[2].value;
+  var maxPlayers = req.body.params.updates[3].value;
+  var date = req.body.params.updates[4].value;
+  var address = req.body.params.updates[5].value;
+
+  User.find({games: {$elemMatch: {host:username,name:gameName}}}, (err, doc) => {
+
+        if (err){
+          res.status(500).send({ text: 'Server Error', status: 500 });
+          
+          return handleError(err);
+        } 
+
+
+  });
+
+
 });
 
 
