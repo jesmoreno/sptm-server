@@ -559,16 +559,15 @@ router.post('/update_games', (req, res) => {
 
 
   //Array de nombres de los jugadores
-  var objPlayers = req.body.params.updates.find(function(element){
+  var objPlayer = req.body.params.updates.find(function(element){
     return element.param === this.field;
-  },{field: 'players'});
-  var players = objPlayers.value;
+  },{field: 'userToAdd'});
+  var playerName = objPlayer.value;
 
 
   //User.updateMany({})
-
-
-
+  console.log(gameName);
+  console.log(playerName);
 
 
   res.status(200).send({text:'Añadido a la partida',status:'200'});
