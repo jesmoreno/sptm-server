@@ -551,7 +551,27 @@ router.post('/remove_game', (req, res) => {
 
 router.post('/update_games', (req, res) => {
 
+  //Nombre de la partida para eliminarla del doc de cada usuario inscrito
+  var objGameName = req.body.params.updates.find(function(element){
+    return element.param === this.field;
+  },{field: 'name'});
+  var gameName = objGameName.value;
 
+
+  //Array de nombres de los jugadores
+  var objPlayers = req.body.params.updates.find(function(element){
+    return element.param === this.field;
+  },{field: 'players'});
+  var players = objPlayers.value;
+
+
+  //User.updateMany({})
+
+
+
+
+
+  res.status(200).send({text:'Añadido a la partida',status:'200'});
 
 
 });
