@@ -3,7 +3,7 @@ const router = express.Router();
 const config = require('../../config');
 const User = require('../../models/user');
 const jwt = require( 'jsonwebtoken' );
-
+var mongoose = require('mongoose'); //Para generar el object ID
 
 ////////////////////////////////////////////////////////////* GETs *////////////////////////////////////////////////////
 router.get('/', (req, res) => {
@@ -511,22 +511,8 @@ router.post('/new_game', (req, res) => {
 
 router.post('/remove_game', (req, res) => {
 
-  //Nombre de la partida para eliminarla del doc de cada usuario inscrito
-  var objGameName = req.body.params.updates.find(function(element){
-    return element.param === this.field;
-  },{field: 'name'});
-  var gameName = objGameName.value;
-
-  //Array de nombres de los jugadores
-  var objPlayers = req.body.params.updates.find(function(element){
-    return element.param === this.field;
-  },{field: 'players'});
-  var players = objPlayers.value;
-
-
-  console.log(gameName);
-  console.log(players);
-
+  //console.log(gameName);
+  //console.log(players);
 
   /*var conditions;
 
@@ -562,12 +548,63 @@ router.post('/update_games', (req, res) => {
   var objPlayer = req.body.params.updates.find(function(element){
     return element.param === this.field;
   },{field: 'userToAdd'});
-  var playerName = objPlayer.value;
+  var newPlayerName = objPlayer.value;
+
+ var objHostName = req.body.params.updates.find(function(element){
+    return element.param === this.field;
+  },{field: 'host'});
+  var host = objHostName.value;
+
+  var objSportName = req.body.params.updates.find(function(element){
+    return element.param === this.field;
+  },{field: 'sport'});
+  var sport = objSportName.value;
 
 
-  //User.updateMany({})
-  console.log(gameName);
-  console.log(playerName);
+  var objMaxPlayers = req.body.params.updates.find(function(element){
+    return element.param === this.field;
+  },{field: 'maxPlayers'});
+  var maxPlayers = objMaxPlayers.value;
+
+  var objDate = req.body.params.updates.find(function(element){
+    return element.param === this.field;
+  },{field: 'date'});
+  var date = objDate.value;
+
+
+  var objAddress = req.body.params.updates.find(function(element){
+    return element.param === this.field;
+  },{field: 'address'});
+  var address = objAddress.value;
+
+  var objPlayersArray = req.body.params.updates.find(function(element){
+    return element.param === this.field;
+  },{field: 'players'});
+  var players = objPlayersArray.value;
+  players.push({_id:mongoose.Types.ObjectId(), playerName: newPlayerName})
+
+  //Primero creo la partida para el usuario añadido
+  var obj = {
+    host: host,
+    name: gameName,
+    sport: sport,
+    maxPlayers: maxPlayers,
+    date: date,
+    address: {
+      address_components: address.address_components,
+      formatted_address: address.formatted_address,
+      location: {
+        type: 'Point',
+        coordinates: address.location.coordinates
+      },
+        place_id: address.place_id
+    },
+    players: players
+  }
+
+  console.log(obj);
+
+  User.update({userName: newPlayerName, });
 
 
   res.status(200).send({text:'Añadido a la partida',status:'200'});
