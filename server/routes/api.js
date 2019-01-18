@@ -602,13 +602,19 @@ router.post('/update_games', (req, res) => {
     players: players
   }
 
-  console.log(obj);
+  //console.log(obj);
 
-  User.update({userName: newPlayerName, });
-
-
-  res.status(200).send({text:'Añadido a la partida',status:'200'});
-
+  var conditions = {userName: newPlayerName}, update = { $push: {games:obj}}, options = {multi: false};
+  User.update(conditions, update,options,callback);
+  function callback (err, data){
+    if (err){
+      res.status(500).send({ text: 'Server Error', status: 500 });
+      return handleError(err);
+    }
+    
+    //Actualizada correctamente la BBDD con la partida creada.
+    res.status(200).send({text:'Añadido a la partida correctamente.',status:200});
+  }
 
 });
 
