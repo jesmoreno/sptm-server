@@ -26,8 +26,9 @@ router.get('/games_info', (req, res) => {
 
     User.find({$and: [{"games.players": {$elemMatch: {playerName: userName} }},{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
       if (err){
+        console.log('Fallo en partidas usuario')
         res.status(500).send({ text: 'Server Error', status: 500 });
-        throw err;     
+        return handleError(err);    
       } 
 
       var games;
@@ -53,7 +54,7 @@ router.get('/games_info', (req, res) => {
     User.find({$nor: [{'games.players':{$elemMatch: {playerName: userName}}}], $and: [{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
       if (err){
         res.status(500).send({ text: 'Server Error', status: 500 });
-        throw err;     
+        return handleError(err);
       } 
 
       var games = [];
@@ -206,8 +207,8 @@ router.post('/register-user', (req, res) => {
   User.count({email:email}, (err,  count) => {
 
     if (err){
-      throw err;
       res.status(500).send({ text: 'Server Error', status: 500 });
+      return handleError(err);
       //return handleError(err);
     } 
 
@@ -219,8 +220,9 @@ router.post('/register-user', (req, res) => {
       //console.log('No existe el email');
       User.count({userName: name}, (err,  count) => {
         if (err){
-          throw err;
+          //throw err;
           res.status(500).send({ text: 'Server Error', status: 500 });
+          return handleError(err);
           //return handleError(err);
         }
 
