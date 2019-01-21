@@ -25,8 +25,9 @@ router.get('/games_info', (req, res) => {
   if(userGames){
 
     User.find({$and: [{"games.players": {$elemMatch: {playerName: userName} }},{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
+      
+
       if (err){
-        console.log('Fallo en partidas usuario')
         res.status(500).send({ text: 'Server Error', status: 500 });
         return handleError(err);    
       } 
@@ -609,6 +610,11 @@ router.post('/update_games', (req, res) => {
 
   var updatedDocs = [];
 
+  //Callback ejecutado despues de cada documento recuperado en el bucle
+  function sendResponse () {
+    res.status(200).send({text:'Añadido a la partida.',status:200});
+  }
+
 
   var conditions = {userName: newPlayerName}, update = { $push: {games:obj}}, options = {multi: false};
   User.update(conditions, update,options,callback);
@@ -621,7 +627,11 @@ router.post('/update_games', (req, res) => {
     updatedDocs.push(newPlayerName);
 
     playersOld.forEach(function(username){
+
       User.findOne({userName: username.playerName}, function(err,doc){
+
+        console.log(username.playerName);
+
         if (err){
           res.status(500).send({ text: 'Server Error', status: 500 });
           return handleError(err);     
@@ -632,15 +642,18 @@ router.post('/update_games', (req, res) => {
         },{value: gameName});
 
         doc.games[gameIndex].players.push({_id:mongoose.Types.ObjectId(), playerName: newPlayerName});
-        updatedDocs.push(username.playerName);
 
         //Guardo el documento modificado
         doc.save(function(err, updatedDoc){
           if (err) return handleError(err);
             //console.log('Documento actualizado');
+
+            updatedDocs.push(username.playerName);
             if(updatedDocs.length === playersNew.length){
-              //console.log('Envio');
-              res.status(200).send({text:'Añadido a la partida.',status:200});
+              //console.log('Usuario: '+newPlayerName);
+              //console.log(updatedDocs);
+              //res.status(200).send({text:'Añadido a la partida.',status:200});
+              sendResponse();
             }
             
         })
