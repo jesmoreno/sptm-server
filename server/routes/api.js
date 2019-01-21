@@ -580,9 +580,11 @@ router.post('/update_games', (req, res) => {
   var objPlayersArray = req.body.params.updates.find(function(element){
     return element.param === this.field;
   },{field: 'players'});
-  var players = objPlayersArray.value;
-  players.push({_id:mongoose.Types.ObjectId(), playerName: newPlayerName})
-
+  var playersOld = objPlayersArray.value;
+  var playersNew = playersOld.slice();
+  playersNew.push({_id:mongoose.Types.ObjectId(), playerName: newPlayerName})
+  
+  
   //Primero creo la partida para el usuario añadido
   var obj = {
     host: host,
@@ -599,10 +601,12 @@ router.post('/update_games', (req, res) => {
       },
         place_id: address.place_id
     },
-    players: players
+    players: playersNew
   }
 
-  //console.log(obj);
+
+  var updatedDocs = [];
+
 
   var conditions = {userName: newPlayerName}, update = { $push: {games:obj}}, options = {multi: false};
   User.update(conditions, update,options,callback);
@@ -612,8 +616,35 @@ router.post('/update_games', (req, res) => {
       return handleError(err);
     }
     
-    //Actualizada correctamente la BBDD con la partida creada.
-    res.status(200).send({text:'Añadido a la partida correctamente.',status:200});
+    updatedDocs.push(newPlayerName);
+
+    playersOld.forEach(function(username){
+      User.findOne({userName: username.playerName}, function(err,doc){
+        if (err){
+          res.status(500).send({ text: 'Server Error', status: 500 });
+          return handleError(err);     
+        }
+
+        var gameIndex = doc.games.findIndex(function(game){
+          return game.name === this.value;
+        },{value: gameName});
+
+        doc.games[gameIndex].players.push({_id:mongoose.Types.ObjectId(), playerName: newPlayerName});
+        updatedDocs.push(username.playerName);
+
+        //Guardo el documento modificado
+        doc.save(function(err, updatedDoc){
+          if (err) return handleError(err);
+            //console.log('Documento actualizado');
+            if(updatedDocs.length === playersNew.length){
+              //console.log('Envio');
+              res.status(200).send({text:'Añadido a la partida.',status:200});
+            }
+            
+        })
+        
+      })
+    })   
   }
 
 });
