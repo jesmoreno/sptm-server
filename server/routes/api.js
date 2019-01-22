@@ -525,23 +525,45 @@ router.post('/new_game', (req, res) => {
 
 router.post('/remove_game', (req, res) => {
 
-  //console.log(gameName);
-  //console.log(players);
+  var gameName = getParameters(req.body.params.updates,'name');
+  var players = getParameters(req.body.params.updates,'players');
 
-  /*var conditions;
+  //Callback ejecutado despues de cada documento recuperado en el bucle
+  function sendResponse () {
+    res.status(200).send({text:'Partida eliminada.',status:200});
+  }
 
-  players.forEach(function(user){
-    conditions = {userName: user.playerName}, update = {$pull: {games: {$elemMatch: {name: gameName.playerName}}}}, options = {multi: false};
-    User.update(conditions, update,options,callback);
-    function callback (err, data){
-      if(err) {
-        res.status(500).send({ text: 'Server Error', status: 500 });
-        return handleError(err);
-      }
+  var updatedDocs = [];
 
-      res.status(200).send({text: 'Partida eliminada', status: 200});
-    }
-  })*/  
+
+  players.forEach(function(username){
+
+      User.findOne({userName: username.playerName}, function(err,doc){
+
+        if (err){
+          res.status(500).send({ text: 'Error eliminando la partida, intentar más tarde.', status: 500 });
+          return handleError(err);     
+        }
+
+        var gameIndex = doc.games.findIndex(function(game){
+          return game.name === this.value;
+        },{value: gameName});
+
+        doc.games.splice(gameIndex,1);
+
+        //Guardo el documento modificado
+        doc.save(function(err, updatedDoc){
+          if (err) return handleError(err);
+            //console.log('Documento actualizado');
+            updatedDocs.push(username.playerName);
+            if(updatedDocs.length === players.length){
+              sendResponse();
+            }
+            
+        })
+        
+      })
+    }) 
 
 
 
@@ -551,23 +573,13 @@ router.post('/remove_game', (req, res) => {
 
 router.post('/update_games', (req, res) => {
 
-  //Nombre de la partida para eliminarla del doc de cada usuario inscrito
   var gameName = getParameters(req.body.params.updates,'name');
-
-  //Array de nombres de los jugadores
   var newPlayerName = getParameters(req.body.params.updates,'userToAdd');
-
   var host = getParameters(req.body.params.updates,'host');
-
   var sport = getParameters(req.body.params.updates,'sport');
-
   var maxPlayers = getParameters(req.body.params.updates,'maxPlayers');
-
   var date = getParameters(req.body.params.updates,'date');
-
-
   var address = getParameters(req.body.params.updates,'address');
-
   var playersOld = getParameters(req.body.params.updates,'players');
   var playersNew = playersOld.slice();
   playersNew.push({_id:mongoose.Types.ObjectId(), playerName: newPlayerName})
@@ -614,8 +626,6 @@ router.post('/update_games', (req, res) => {
     playersOld.forEach(function(username){
 
       User.findOne({userName: username.playerName}, function(err,doc){
-
-        console.log(username.playerName);
 
         if (err){
           res.status(500).send({ text: 'Error añadiendo a la partida, intentar más tarde.', status: 500 });
