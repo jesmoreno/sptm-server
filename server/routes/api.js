@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const config = require('../../config');
 const User = require('../../models/user');
+const Game = require('../../models/games');
 const jwt = require( 'jsonwebtoken' );
 var mongoose = require('mongoose'); //Para generar el object ID
 
