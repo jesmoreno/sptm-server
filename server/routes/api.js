@@ -111,7 +111,7 @@ router.get('/games_info', (req, res) => {
 
       res.status(200).send(games);
 
-
+    })
   }
 });
 
