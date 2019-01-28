@@ -209,12 +209,12 @@ router.get('/user_info', (req, res) => {
 router.post('/register-user', (req, res) => {
 
   //console.log(req.body.params.updates)
-  var name = req.body.params.updates[0].value;
-  var email = req.body.params.updates[1].value;
-  var passwd = req.body.params.updates[2].value;
-  var sport = req.body.params.updates[3].value;
-  var city = req.body.params.updates[4].value;
-  var pc = req.body.params.updates[5].value;
+  var name = getParameters(req.body.params.updates,'name');
+  var email = getParameters(req.body.params.updates,'email');
+  var passwd = getParameters(req.body.params.updates,'password');
+  var sport = getParameters(req.body.params.updates,'favSport');
+  var city = getParameters(req.body.params.updates,'city');
+  var pc = getParameters(req.body.params.updates,'pc');
 
 
   User.count({email:email}, (err,  count) => {
@@ -302,7 +302,7 @@ router.post('/authenticate', (req, res) => {
       } else {
         //user valid
         token = jwt.sign( { admin : req.body.admin }, config.secret, { expiresIn: 3600 } );
-        resObject = {text: 'Login correcto.',token: token ,status: 200};
+        resObject = {text: 'Login correcto.',token: token ,status: 200, userId: user._id};
       }
     }
     //console.log('token: '+resObject.content);
