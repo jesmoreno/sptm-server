@@ -15,8 +15,7 @@ module.exports = mongoose.model('User', new Schema({
     friends: [String],
     games: [
       {
-        _id: mongoose.Schema.Types.ObjectId,
-        gameName: String
+        _id: mongoose.Schema.Types.ObjectId
       }
     ]
 }));

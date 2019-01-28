@@ -360,9 +360,9 @@ router.post('/remove_friend', (req, res) => {
 router.post('/update_password', (req, res) => {
 
   //console.log(req.body.params.updates[0].value);
-  var username = req.body.params.updates[0].value;
-  var oldPass = req.body.params.updates[1].value;
-  var newPass = req.body.params.updates[2].value;
+  var username = getParameters(req.body.params.updates,'userName');
+  var oldPass = getParameters(req.body.params.updates,'oldPassword');
+  var newPass = getParameters(req.body.params.updates,'newPassword');
 
   User.findOne({userName:username, password: oldPass},function(err, data){
       if(err) return handleError(err);
@@ -466,60 +466,73 @@ router.post('/update_profile', (req, res) => {
 router.post('/new_game', (req, res) => {
 
 
-  var username = req.body.params.updates[0].value;
-  var gameName = req.body.params.updates[1].value;
-  var sport = req.body.params.updates[2].value;
-  var maxPlayers = req.body.params.updates[3].value;
-  var date = req.body.params.updates[4].value;
-  var address = req.body.params.updates[5].value;
+  var username = getParameters(req.body.params.updates,'host');
+  var gameName = getParameters(req.body.params.updates,'name');
+  var sport = getParameters(req.body.params.updates,'sport');
+  var maxPlayers = getParameters(req.body.params.updates,'maxPlayers');
+  var date = getParameters(req.body.params.updates,'date');
+  var address = getParameters(req.body.params.updates,'address');
+  var userId = getParameters(req.body.params.updates,'userId');
 
-  User.find({games: {$elemMatch: {host:username,name:gameName}}}, (err, doc) => {
+  Game.find({name: gameName, sport: sport}, (err, docs) => {
+    if (err){ 
+      res.status(500).send({ text: 'Server Error', status: 500 });    
+      return handleError(err);
+    }
 
+    if(docs.length){//Si existe el nombre devuelvo respuesta de que ya existe
+      res.status(403).send({text:'Nombre de partida ya existente, por favor, introduce uno nuevo.',status:403})
+    }else{
+      //Genero id para la partida nueva
+      var gameId = {
+        _id : mongoose.Types.ObjectId()
+      };
 
+      //Inserto el ID de la nueva partida en el array del jugador que la ha creado
+      var conditions = {userName: username}, update = { $push: {games:gameId}}, options = {multi: false};
+      User.update(conditions, update,options,callback);
+      function callback (err, data){
         if (err){
-          res.status(500).send({ text: 'Server Error', status: 500 });
-          
+          res.status(500).send({ text: 'Fallo creando la partida', status: 500 });
           return handleError(err);
-        } 
+        }
 
-        if(doc.length){
-          res.status(403).send({text:'Nombre de partida ya existente, por favor, introduce uno nuevo.',status:403})
-        }else{
-
-          var obj = {
-            host: username,
-            name: gameName,
-            sport: sport,
-            maxPlayers: maxPlayers,
-            date: new Date(date),
-            address: {
-              address_components: address.address_components,
-              formatted_address: address.formatted_address,
-              location: {
-                type: 'Point',
+        //Genero nuevo documento en la coleccion de partidas.
+        var gameObj = new Game({
+          _id: gameId,
+          host: username,
+          name: gameName,
+          sport: sport,
+          maxPlayers: maxPlayers,
+          date: new Date(date),
+          address: {
+            address_components: address.address_components,
+            formatted_address: address.formatted_address,
+            location: {
+              type: 'Point',
                 coordinates: [address.location.lng, address.location.lat]
               },
               place_id: address.place_id
-            },
-            players: [{
-              playerName: username
-            }]
+          },
+          players: [{
+            _id: userId,
+          }]
+        });
+
+        gameObj.save(function(err) {
+          if (err){
+            res.status(500).send({ text: 'Fallo creando la partida', status: 500 });
+            return handleError(err);
           }
 
-          var conditions = {userName: username}, update = { $push: {games:obj}}, options = {multi: false};
-          User.update(conditions, update,options,callback);
+          //Actualizada correctamente la BBDD con la partida creada.
+          res.status(200).send({text:'Partida creada correctamente.',status:200});
+        });     
+      }
 
-          function callback (err, data){
-           if (err){
-              res.status(500).send({ text: 'Server Error', status: 500 });
-              return handleError(err);
-            }
-            //Actualizada correctamente la BBDD con la partida creada.
-            res.status(200).send({text:'Partida creada correctamente.',status:200});
-          }
-    
-        }   
-  });
+    }//cierro else
+
+  })
 
 });
 ////////////////////////////// ELIMINA LA PARTIDA SELECIONADA ////////////////////////////////////// 
