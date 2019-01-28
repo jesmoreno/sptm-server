@@ -561,47 +561,45 @@ router.post('/new_game', (req, res) => {
 
 router.post('/remove_game', (req, res) => {
 
-  var gameName = getParameters(req.body.params.updates,'name');
-  var players = getParameters(req.body.params.updates,'players');
+  var gameId = getParameters(req.body.params.updates,'_id');
 
-  //Callback ejecutado despues de cada documento recuperado en el bucle
   function sendResponse () {
     res.status(200).send({text:'Partida eliminada.',status:200});
   }
 
-  var updatedDocs = [];
+  Game.deleteOne({_id:gameId}, function(err) {
+    if (err){
+      res.status(500).send({ text: 'Error eliminando la partida, intentar más tarde.', status: 500 });
+      return handleError(err);     
+    }
 
+    var updatedDocs = [];
 
-  players.forEach(function(username){
+    User.find({games: {$elemMatch: {_id: gameId}}}, function(err, docs){
 
-      User.findOne({userName: username.playerName}, function(err,doc){
-
-        if (err){
-          res.status(500).send({ text: 'Error eliminando la partida, intentar más tarde.', status: 500 });
-          return handleError(err);     
-        }
+      docs.forEach(function(doc){
 
         var gameIndex = doc.games.findIndex(function(game){
-          return game.name === this.value;
-        },{value: gameName});
+          return game._id === this.value;
+        },{value: gameId});
 
         doc.games.splice(gameIndex,1);
-
+        
         //Guardo el documento modificado
         doc.save(function(err, updatedDoc){
           if (err) return handleError(err);
-            //console.log('Documento actualizado');
-            updatedDocs.push(username.playerName);
-            if(updatedDocs.length === players.length){
+            updatedDocs.push(updatedDoc);
+            if(updatedDocs.length === docs.length){
               sendResponse();
             }
             
         })
-        
+
       })
-    }) 
 
+    })
 
+  });
 
 }); 
 
