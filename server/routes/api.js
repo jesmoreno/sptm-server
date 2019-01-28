@@ -605,89 +605,54 @@ router.post('/remove_game', (req, res) => {
 
 }); 
 
-/////////////////////////////////////// CREO LA PARTIDA PARA EL USUARIO /////////////////////////////////7
+/////////////////////////////////////// CREO LA PARTIDA PARA EL USUARIO /////////////////////////////////
 
 router.post('/update_games', (req, res) => {
 
-  var gameName = getParameters(req.body.params.updates,'name');
-  var newPlayerName = getParameters(req.body.params.updates,'userToAdd');
-  var host = getParameters(req.body.params.updates,'host');
+  var newPlayerInfo = getParameters(req.body.params.updates,'userToAdd');
+  var newPlayerName = newPlayerInfo.name;
+  var newPlayerId = newPlayerInfo.id;
+
   var sport = getParameters(req.body.params.updates,'sport');
-  var maxPlayers = getParameters(req.body.params.updates,'maxPlayers');
-  var date = getParameters(req.body.params.updates,'date');
   var address = getParameters(req.body.params.updates,'address');
-  var playersOld = getParameters(req.body.params.updates,'players');
-  var playersNew = playersOld.slice();
-  playersNew.push({_id:mongoose.Types.ObjectId(), playerName: newPlayerName})
-  
-  
-  //Primero creo la partida para el usuario añadido
-  var obj = {
-    host: host,
-    name: gameName,
-    sport: sport,
-    maxPlayers: maxPlayers,
-    date: date,
-    address: {
-      address_components: address.address_components,
-      formatted_address: address.formatted_address,
-      location: {
-        type: 'Point',
-        coordinates: address.location.coordinates
-      },
-        place_id: address.place_id
-    },
-    players: playersNew
-  }
+  var postalCode = address.address_components[6].long_name;
+  var gameId = getParameters(req.body.params.updates,'_id');
 
+  Game.findOne({_id:gameId}, function(err, doc){
 
-  var updatedDocs = [];
-
-  //Callback ejecutado despues de cada documento recuperado en el bucle
-  function sendResponse () {
-    res.status(200).send({text:'Añadido a la partida.',status:200});
-  }
-
-
-  var conditions = {userName: newPlayerName}, update = { $push: {games:obj}}, options = {multi: false};
-  User.update(conditions, update,options,callback);
-  function callback (err, data){
     if (err){
-      res.status(500).send({ text: 'Server Error', status: 500 });
+      res.status(500).send({ text: 'Fallo añadiendo a la partida.', status: 500});
       return handleError(err);
     }
-    
-    updatedDocs.push(newPlayerName);
 
-    playersOld.forEach(function(username){
+    var obj = {
+      _id: doc._id,
+      sport: sport,
+      postCode: postalCode
+    }
 
-      User.findOne({userName: username.playerName}, function(err,doc){
+    var conditions = {userName: newPlayerName}, update = { $push: {games:obj}}, options = {multi: false};
+    User.update(conditions, update,options,callback);
 
+    function callback (err, data){
+      if (err){
+        res.status(500).send({ text: 'Fallo añadiendo a la partida.', status: 500 });
+        return handleError(err);
+      }
+
+      doc.players.push({_id: newPlayerId, playerName: newPlayerName});
+      doc.save(function(err){
         if (err){
-          res.status(500).send({ text: 'Error añadiendo a la partida, intentar más tarde.', status: 500 });
-          return handleError(err);     
+          res.status(500).send({ text: 'Fallo añadiendo a la partida.', status: 500});
+          return handleError(err);
         }
 
-        var gameIndex = doc.games.findIndex(function(game){
-          return game.name === this.value;
-        },{value: gameName});
+        res.status(200).send({ text: 'Añadido a la partida.', status: 200 });
 
-        doc.games[gameIndex].players.push({_id:mongoose.Types.ObjectId(), playerName: newPlayerName});
-
-        //Guardo el documento modificado
-        doc.save(function(err, updatedDoc){
-          if (err) return handleError(err);
-            //console.log('Documento actualizado');
-            updatedDocs.push(username.playerName);
-            if(updatedDocs.length === playersNew.length){
-              sendResponse();
-            }
-            
-        })
-        
       })
-    })   
-  }
+    }
+
+  })
 
 });
 
