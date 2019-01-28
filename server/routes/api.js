@@ -16,14 +16,26 @@ function getParameters(objIn,fieldName) {
   return obj.value;
 }
 
+function filterBySport(docsIn, sport) {
+  
+  var docOut = docsIn.find(function(element){
+    return element.sport === this;
+  },sport);
+
+  return docOut;
+}
+
 
 ////////////////////////////////////////////////////////////* GETs *////////////////////////////////////////////////////
-router.get('/', (req, res) => {
-  res.send('api works');
-});
 
 //Recibe como parametros el nombre de usuario, numero de elementos a devolver,codigo postal y ciudad
 router.get('/games_info', (req, res) => {
+
+
+  //Callback ejecutado despues de cada documento recuperado en el bucle
+  function sendResponse (games) {
+    res.status(200).send(games);
+  }
 
   var userName = req.query.userName;
   var userGames;
@@ -32,39 +44,58 @@ router.get('/games_info', (req, res) => {
   var pc = req.query.postCode;
   var sport = req.query.sport;
 
-  //console.log(req.query);
   //Si recibe nombre de usuario filtra las partidas de ese usuario en la localizacion indicada con ciudad y CP y con el deporte elegido (inicialmente el favorito del usuario)
   if(userGames){
 
-    User.find({$and: [{"games.players": {$elemMatch: {playerName: userName} }},{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
-      
-
+    User.findOne({userName: userName}, function(err, doc){
       if (err){
-        res.status(500).send({ text: 'Server Error', status: 500 });
+        res.status(500).send({ text: 'Fallo recuperando la información de las partidas del usuario.', status: 500 });
         return handleError(err);    
-      } 
-
-      var games;
-      docs.length ? games = docs[0].games : games = docs;
-
-      if(games.length){
-
-          games = games.filter(function(element){
-            if(element.sport === req.query.sport){
-              return true;
-            }else{
-              return false;
-            }
-          });
-
       }
 
-      res.status(200).send(games);
+      if(doc.games.length){
+
+        var gamesFiltered = doc.games.filter(function(game){
+          return (game.sport == this.sportFilter && game.postCode == this.pcFilter);
+        },{sportFilter: sport, pcFilter: pc})
+
+        if(gamesFiltered.length){ 
+
+          var gamesInserted = [];
+
+          gamesFiltered.forEach(function(game){
+            Game.findById(game._id,function(err, gameDoc){
+
+              if (err){
+                res.status(500).send({ text: 'Fallo recuperando la información de las partidas del usuario.', status: 500 });
+                return handleError(err);    
+              }
+
+              //console.log(gameDoc);
+
+              gamesInserted.push(gameDoc);
+              //console.log('Partidas insertadas: '+gamesInserted.length+', de: '+gamesFiltered.length);
+              if(gamesInserted.length === gamesFiltered.length) {
+                sendResponse(gamesInserted);
+              }
+            })
+          });
+
+        }else{// Sus partidas no cumplen los filtros
+          res.status(200).send([]);
+        }
+
+
+      }else{
+        //No tiene partidas
+        res.status(200).send([])
+      }
+      
 
     })
 
   }else{//Si el nombre de usuario es null o undefined, devuelvo todas las partidas de la localizacion (ciudad y CP lo indican) del deporte elegido
-    User.find({$nor: [{'games.players':{$elemMatch: {playerName: userName}}}], $and: [{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
+    Game.find({$nor: [{'players':{$elemMatch: {playerName: userName}}}], $and: [{"sport": sport},{"address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
       if (err){
         res.status(500).send({ text: 'Server Error', status: 500 });
         return handleError(err);
@@ -73,27 +104,14 @@ router.get('/games_info', (req, res) => {
       var games = [];
 
       if(docs.length){
-        
         docs.forEach(function(doc){
-          doc.games.forEach(function(game){
-            games.push(game);
-          })
+          games.push(doc);
         })
-
-      }
-
-      if(games.length){
-        games = games.filter(function(element){
-          if(element.sport === req.query.sport){
-            return true;
-          }else{
-            return false;
-          }
-        })  
       }
 
       res.status(200).send(games);
-    })
+
+
   }
 });
 
@@ -473,6 +491,7 @@ router.post('/new_game', (req, res) => {
   var date = getParameters(req.body.params.updates,'date');
   var address = getParameters(req.body.params.updates,'address');
   var userId = getParameters(req.body.params.updates,'userId');
+  var pc = getParameters(req.body.params.updates,'postCode');
 
   Game.find({name: gameName, sport: sport}, (err, docs) => {
     if (err){ 
@@ -485,7 +504,9 @@ router.post('/new_game', (req, res) => {
     }else{
       //Genero id para la partida nueva
       var gameId = {
-        _id : mongoose.Types.ObjectId()
+        _id : mongoose.Types.ObjectId(),
+        sport: sport,
+        postCode: pc
       };
 
       //Inserto el ID de la nueva partida en el array del jugador que la ha creado
@@ -516,6 +537,7 @@ router.post('/new_game', (req, res) => {
           },
           players: [{
             _id: userId,
+            playerName: username
           }]
         });
 
