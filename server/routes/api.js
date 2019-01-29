@@ -118,18 +118,16 @@ router.get('/games_info', (req, res) => {
 //Devuelve todos los usuarios disponibles para agregar a amigos
 router.get('/friends', (req, res) => {
 
-  console.log(req.query);
   var username = req.query.username;
+  var filter = req.query.filter;
+  //Para el filtrado por letras del nombre
+  var regExp = new RegExp(filter);
 
   if(req.query.sortOrder){
 
-    var filter = req.query.filter;
     var sort = req.query.sortOrder;
     var pageNumber = req.query.pageNumber;
     var pageSize =req.query.pageSize;
-    //Para el filtrado por letras del nombre
-    var regExp = new RegExp(filter);
-
     //Indice para coger los usuarios según la página y el numero de elementos por pagina
     startIndex = pageNumber*pageSize;
     endIndex = parseInt(startIndex)+parseInt(pageSize);
@@ -154,9 +152,20 @@ router.get('/friends', (req, res) => {
     });
 
   }else{
-    res.status(200).send({text:'Filtro para el home',status:200});
+
+    User.find({friends:username})
+    .where({userName: regExp})
+    .then(function(users){
+
+      var usersFound = [];
+
+      users.forEach(function(user){
+        usersFound.push({name: user.userName,favSport:user.sport, totalFriends: users.length })
+      })
+
+      res.status(200).send(usersFound);
+    });
   }
-  
 
 });
 
