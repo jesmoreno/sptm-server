@@ -115,41 +115,48 @@ router.get('/games_info', (req, res) => {
   }
 });
 
-
-
 //Devuelve todos los usuarios disponibles para agregar a amigos
 router.get('/friends', (req, res) => {
+
+  console.log(req.query);
+  var username = req.query.username;
+
+  if(req.query.sortOrder){
+
+    var filter = req.query.filter;
+    var sort = req.query.sortOrder;
+    var pageNumber = req.query.pageNumber;
+    var pageSize =req.query.pageSize;
+    //Para el filtrado por letras del nombre
+    var regExp = new RegExp(filter);
+
+    //Indice para coger los usuarios según la página y el numero de elementos por pagina
+    startIndex = pageNumber*pageSize;
+    endIndex = parseInt(startIndex)+parseInt(pageSize);
+
+    User.find({friends:username})
+    .where({userName: regExp})
+    .sort({sport:sort})
+    .then(function(users){
+
+      var usersFound = [];
+      //me quedo con la parte del array de amigos correspondiente según página y el numero de elementos por pagina
+      selectedUsers = users.slice(startIndex,endIndex);
+
+      selectedUsers.forEach(function(user){
+        usersFound.push({name: user.userName,favSport:user.sport, totalFriends: users.length })
+      })
+
+      //if(usersFound.length===0) usersFound.push({totalFriends: 0});
+
+      res.status(200).send(usersFound);
+
+    });
+
+  }else{
+    res.status(200).send({text:'Filtro para el home',status:200});
+  }
   
-  var username = req.query.userName;
-  var filter = req.query.filter;
-  var sort = req.query.sortOrder;
-  var pageNumber = req.query.pageNumber;
-  var pageSize =req.query.pageSize;
-  //Para el filtrado por letras del nombre
-  var regExp = new RegExp(filter);
-
-  //Indice para coger los usuarios según la página y el numero de elementos por pagina 
-  startIndex = pageNumber*pageSize;
-  endIndex = parseInt(startIndex)+parseInt(pageSize);
-
-  User.find({friends:username})
-  .where({userName: regExp})
-  .sort({sport:sort})
-  .then(function(users){
-
-    var usersFound = [];
-    //me quedo con la parte del array de amigos correspondiente según página y el numero de elementos por pagina
-    selectedUsers = users.slice(startIndex,endIndex);
-
-    selectedUsers.forEach(function(user){
-      usersFound.push({name: user.userName,favSport:user.sport, totalFriends: users.length })
-    })
-
-    //if(usersFound.length===0) usersFound.push({totalFriends: 0});
-
-    res.status(200).send(usersFound);
-
-  });
 
 });
 
