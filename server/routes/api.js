@@ -142,7 +142,7 @@ router.get('/friends', (req, res) => {
       selectedUsers = users.slice(startIndex,endIndex);
 
       selectedUsers.forEach(function(user){
-        usersFound.push({name: user.userName,favSport:user.sport, totalFriends: users.length })
+        usersFound.push({id: user._id,name: user.userName,favSport:user.sport, totalFriends: users.length })
       })
 
       //if(usersFound.length===0) usersFound.push({totalFriends: 0});
@@ -160,7 +160,7 @@ router.get('/friends', (req, res) => {
       var usersFound = [];
 
       users.forEach(function(user){
-        usersFound.push({name: user.userName,favSport:user.sport, totalFriends: users.length })
+        usersFound.push({id: user._id,name: user.userName,favSport:user.sport, totalFriends: users.length })
       })
 
       res.status(200).send(usersFound);
