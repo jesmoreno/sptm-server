@@ -697,7 +697,7 @@ router.post('/update_games', (req, res) => {
   var postalCode = getParameters(req.body.params.updates,'postCode');
   var gameId = getParameters(req.body.params.updates,'_id');
 
-  Game.findOne({_id:gameId}, function(err, doc){
+  Game.findOne({_id:gameId}, function(err, gameInfo){
 
     if (err){
       res.status(500).send({ text: 'Fallo añadiendo a la partida.', status: 500});
@@ -705,7 +705,7 @@ router.post('/update_games', (req, res) => {
     }
 
     var obj = {
-      _id: doc._id,
+      _id: gameInfo._id,
       sport: sport,
       postCode: postalCode
     }
@@ -719,14 +719,37 @@ router.post('/update_games', (req, res) => {
         return handleError(err);
       }
 
-      doc.players.push({_id: newPlayerId, playerName: newPlayerName});
-      doc.save(function(err){
+      gameInfo.players.push({_id: newPlayerId, playerName: newPlayerName});
+      gameInfo.save(function(err){
         if (err){
           res.status(500).send({ text: 'Fallo añadiendo a la partida.', status: 500});
           return handleError(err);
         }
 
         res.status(200).send({ text: 'Añadido a la partida.', status: 200 });
+
+        gameInfo.players.forEach(function(player){
+
+          User.findById(player._id,function(err,doc){
+
+            var message = {
+              from: "sporttimecenter@gmail.com",
+              to: doc.email,
+              subject: "Partida: "+gameInfo.name,
+              text: doc.userName+" se ha añadido a la partida"+gameInfo.name,
+              html: "<p>"+doc.userName+" se ha añadido a la partida: "+gameInfo.name+"</p>"
+            };
+
+            // send mail with defined transport object
+            transporter.sendMail(message, function(error, info){
+              if(error){
+                return console.log(error);
+              }
+              console.log('Message sent: ' + info.response);
+            });
+          })
+        })
+        
 
       })
     }
