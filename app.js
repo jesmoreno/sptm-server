@@ -11,7 +11,7 @@ var expressJwt = require('express-jwt');
 //Conexion con la BD
 var db = mongoose.connection;
 
-mongoose.connect(config.database);
+mongoose.connect(config.database, {useNewUrlParser: true });
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
 // we're connected!

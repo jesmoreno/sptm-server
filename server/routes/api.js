@@ -5,7 +5,18 @@ const User = require('../../models/user');
 const Game = require('../../models/games');
 const jwt = require( 'jsonwebtoken' );
 var mongoose = require('mongoose'); //Para generar el object ID
+const nodemailer = require("nodemailer"); //Envio de emails con notificaciones
 
+const gmail = require('../../config/keys'); //Contraseña gmail
+
+
+var transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+         user: gmail.email,
+         pass: gmail.pass
+     }
+ });
 
 function getParameters(objIn,fieldName) {
 
@@ -15,16 +26,6 @@ function getParameters(objIn,fieldName) {
 
   return obj.value;
 }
-
-function filterBySport(docsIn, sport) {
-  
-  var docOut = docsIn.find(function(element){
-    return element.sport === this;
-  },sport);
-
-  return docOut;
-}
-
 
 ////////////////////////////////////////////////////////////* GETs *////////////////////////////////////////////////////
 
@@ -358,6 +359,35 @@ router.post('/add_friend', (req, res) => {
     //Añado usuario a la lista del amigo
     User.findOneAndUpdate({userName: friendName},{$push: {friends: username}}).then(function(doc2){
       res.status(200).send({text: friendName+' añadido a la lista', status: 200});
+
+      User.findOne({userName: friendName}).then(function(doc){
+        //Envio correo al amigo añadido
+        /*var message = {
+          from: "sporttimecenter@gmail.com",
+          to: doc.email,
+          subject: "Amigos en sptm",
+          text: friendName+" te ha añadido como amigo",
+          html: "<p>"+friendName+" te ha añadido como amigo"+"</p>"
+        };*/
+
+        var message = {
+          from: "sporttimecenter@gmail.com",
+          to: "jesusbasket8@gmail.com",
+          subject: "Amigos en sptm",
+          text: friendName+" te ha añadido como amigo",
+          html: "<p>"+friendName+" te ha añadido como amigo"+"</p>"
+        };
+
+        // send mail with defined transport object
+          transporter.sendMail(message, function(error, info){
+            if(error){
+              return console.log(error);
+            }
+            console.log('Message sent: ' + info.response);
+          });
+      })
+      
+
     });
   });
   
@@ -419,12 +449,17 @@ router.post('/update_password', (req, res) => {
 //////////////////////// ACTUALIZA EL PERFIL DEL USUARIO, NOMBRE;CIUDAD,DEPORTE /////////////////////////////////////////////////
 router.post('/update_profile', (req, res) => {
 
-  //console.log(req.body.params.updates[0].value);
-  var username = req.body.params.updates[0].value;
-  var field = req.body.params.updates[1].value;
-  var data = req.body.params.updates[2].value;
+  var userId = req.body.params.updates[0].value;
+  var username = req.body.params.updates[1].value;
+  var field = req.body.params.updates[2].value;
+  var data = req.body.params.updates[3].value;
 
   //console.log('Nombre de usuario: '+username+', Campo: '+field+', Valor: '+data);
+
+  //Callback ejecutado despues de cada documento actualizado en el bucle
+  function sendResponse () {
+    res.status(200).send({text:"Perfil actualizado",status:200});
+  }
 
   if(field === 'newName'){
 
@@ -455,7 +490,35 @@ router.post('/update_profile', (req, res) => {
                 function callback3 (err,data4){
                   if(err) return handleError(err);
                   //console.log(data4);
-                  res.status(200).send({text: 'Perfil actualizado', status: 200});
+
+                  //En las partidas actualizo tmb el nombre de usuario
+
+                  Game.find({players: {$elemMatch:{_id: userId}}}, function(err,gamesDocs){    
+                    
+                    var docUpdated = [];
+
+                    gamesDocs.forEach(function(gameDoc,index,allDocs){
+                      var pos = gameDoc.players.findIndex(function(e){
+                        return e._id == this.value;
+                      },{value: userId});
+
+                      gameDoc.players[pos].playerName = data;
+
+                      gameDoc.save(function(err){
+                        if (err){
+                          res.status(500).send({ text: 'Fallo actualizando nombre en lista de partidas', status: 500 });
+                          return handleError(err);
+                        }
+
+                        docUpdated.push(data);
+                        if(docUpdated.length === allDocs.length){
+                          sendResponse();
+                        }
+
+                      })
+                      
+                    });
+                  });
                 }
                 
               }
