@@ -9,7 +9,6 @@ const nodemailer = require("nodemailer"); //Envio de emails con notificaciones
 
 const gmail = require('../../config/keys'); //Contraseña gmail
 
-
 var transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -378,13 +377,16 @@ router.post('/add_friend', (req, res) => {
           html: "<p>"+friendName+" te ha añadido como amigo"+"</p>"
         };
 
+        console.log(gmail.email);
+        console.log(gmail.pass);
+
         // send mail with defined transport object
-          transporter.sendMail(message, function(error, info){
-            if(error){
-              return console.log(error);
-            }
-            console.log('Message sent: ' + info.response);
-          });
+        transporter.sendMail(message, function(error, info){
+          if(error){
+            return console.log(error);
+          }
+          console.log('Message sent: ' + info.response);
+        });
       })
       
 
@@ -692,7 +694,7 @@ router.post('/update_games', (req, res) => {
 
   var sport = getParameters(req.body.params.updates,'sport');
   var address = getParameters(req.body.params.updates,'address');
-  var postalCode = address.address_components[6].long_name;
+  var postalCode = getParameters(req.body.params.updates,'postCode');
   var gameId = getParameters(req.body.params.updates,'_id');
 
   Game.findOne({_id:gameId}, function(err, doc){
