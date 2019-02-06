@@ -359,15 +359,15 @@ router.post('/add_friend', (req, res) => {
     User.findOneAndUpdate({userName: friendName},{$push: {friends: username}}).then(function(doc2){
       res.status(200).send({text: friendName+' añadido a la lista', status: 200});
 
-      User.findOne({userName: friendName}).then(function(doc){
+      /*User.findOne({userName: friendName}).then(function(doc){
         //Envio correo al amigo añadido
-        /*var message = {
+        var message = {
           from: "sporttimecenter@gmail.com",
           to: doc.email,
           subject: "Amigos en sptm",
           text: friendName+" te ha añadido como amigo",
           html: "<p>"+friendName+" te ha añadido como amigo"+"</p>"
-        };*/
+        };
 
         var message = {
           from: "sporttimecenter@gmail.com",
@@ -387,9 +387,7 @@ router.post('/add_friend', (req, res) => {
           }
           console.log('Message sent: ' + info.response);
         });
-      })
-      
-
+      })*/
     });
   });
   
@@ -728,7 +726,7 @@ router.post('/update_games', (req, res) => {
 
         res.status(200).send({ text: 'Añadido a la partida.', status: 200 });
 
-        gameInfo.players.forEach(function(player){
+        /*gameInfo.players.forEach(function(player){
 
           User.findById(player._id,function(err,doc){
 
@@ -748,9 +746,7 @@ router.post('/update_games', (req, res) => {
               console.log('Message sent: ' + info.response);
             });
           })
-        })
-        
-
+        })*/
       })
     }
 
