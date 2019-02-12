@@ -691,8 +691,7 @@ router.post('/update_games', (req, res) => {
   var newPlayerId = newPlayerInfo.id;
 
   var sport = getParameters(req.body.params.updates,'sport');
-  var address = getParameters(req.body.params.updates,'address');
-  var postalCode = getParameters(req.body.params.updates,'postCode');
+  var postalCode = getParameters(req.body.params.updates,'address').address_components[6].long_name;
   var gameId = getParameters(req.body.params.updates,'_id');
 
   Game.findOne({_id:gameId}, function(err, gameInfo){
