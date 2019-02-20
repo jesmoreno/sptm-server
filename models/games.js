@@ -34,7 +34,7 @@ module.exports = mongoose.model('Game', new Schema({
     	place_id: String
     },
     players: [{
-        _id: mongoose.Schema.Types.ObjectId,
+      _id: mongoose.Schema.Types.ObjectId,
     	playerName: String
 	}]
 }));

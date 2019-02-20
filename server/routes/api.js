@@ -763,25 +763,54 @@ router.post('/remove_player', (req, res) => {
 
   var gameId = getParameters(req.body.params.updates,'_id');
 
-  var conditions = {_id: gameId}, update = {$pull: {"players._id" :removedPlayerId}}, options = {multi: false};
-  Game.update(conditions, update,options,callback);
-  function callback (err, data){
+
+  Game.findById(gameId , function(err, doc){
     if (err){
-      res.status(500).send({ text: 'Fallo añadiendo a la partida.', status: 500 });
+      console.log(err);
+      res.status(500).send({ text: 'Fallo eliminando de la partida.', status: 500 });
       return handleError(err);
     }
 
-    var conditions = {userName: removedPlayerName}, update = {$pull: {"games._id" :gameId}}, options = {multi: false};
-    User.update(conditions, update,options,callback2);
-    function callback2 (err2, data2){
-      if (err2){
-        res.status(500).send({ text: 'Fallo añadiendo a la partida.', status: 500 });
+    doc.players = doc.players.filter(function(player){
+      return  player._id != removedPlayerId;
+    });
+
+    doc.save(function (err, doc) {
+      if (err){
+        res.status(500).send({ text: 'Fallo eliminando de la partida.', status: 500 });
         return handleError(err);
       }
 
-      res.status(200).send({text:'Jugador '+removedPlayerName+' eliminado.'});
-    }
-  }
+      //Elimino del documento del usuario la partidas
+      User.findById(removedPlayerId, function(err,doc2){
+        if (err){
+          console.log(err);
+          res.status(500).send({ text: 'Fallo eliminando de la partida.', status: 500 });
+          return handleError(err);
+        }
+
+        doc2.games = doc2.games.filter(function(game){
+          return game._id != gameId;
+        });
+
+        console.log(doc2.games);
+
+        doc2.save(function (err, doc2) {
+          if (err){
+            res.status(500).send({ text: 'Fallo eliminando de la partida.', status: 500 });
+            return handleError(err);
+          }
+
+          res.status(200).send({text: removedPlayerName + ' eliminad@ de la partida',status:200});
+
+        });
+        
+
+      })
+    });
+
+  });
+
 });
 
 module.exports = router;
