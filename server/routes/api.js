@@ -753,4 +753,35 @@ router.post('/update_games', (req, res) => {
 
 });
 
+//////////////////////////////////////////// ELIMINO AL JUGADOR DE LA PARTIDA //////////////////////////////////////
+
+router.post('/remove_player', (req, res) => {
+
+  var userToRemove = getParameters(req.body.params.updates,'userToRemove');
+  var removedPlayerName = userToRemove.name;
+  var removedPlayerId = userToRemove.id;
+
+  var gameId = getParameters(req.body.params.updates,'_id');
+
+  var conditions = {_id: gameId}, update = {$pull: {"players._id" :removedPlayerId}}, options = {multi: false};
+  Game.update(conditions, update,options,callback);
+  function callback (err, data){
+    if (err){
+      res.status(500).send({ text: 'Fallo añadiendo a la partida.', status: 500 });
+      return handleError(err);
+    }
+
+    var conditions = {userName: removedPlayerName}, update = {$pull: {"games._id" :gameId}}, options = {multi: false};
+    User.update(conditions, update,options,callback2);
+    function callback2 (err2, data2){
+      if (err2){
+        res.status(500).send({ text: 'Fallo añadiendo a la partida.', status: 500 });
+        return handleError(err);
+      }
+
+      res.status(200).send({text:'Jugador '+removedPlayerName+' eliminado.'});
+    }
+  }
+});
+
 module.exports = router;
