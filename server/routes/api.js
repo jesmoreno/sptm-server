@@ -721,7 +721,7 @@ router.post('/update_games', (req, res) => {
           return handleError(err);
         }
 
-        res.status(200).send({ text: 'Añadido a la partida.', status: 200 });
+        res.status(200).send({ text: 'Añadido a la partida.', status: 200, content: gameInfo});
 
         /*gameInfo.players.forEach(function(player){
 
@@ -791,7 +791,6 @@ router.post('/remove_player', (req, res) => {
           return game._id != gameId;
         });
 
-        console.log(doc2.games);
 
         doc2.save(function (err, doc2) {
           if (err){
