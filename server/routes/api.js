@@ -71,8 +71,6 @@ router.get('/games_info', (req, res) => {
                 return handleError(err);    
               }
 
-              //console.log(gameDoc);
-
               gamesInserted.push(gameDoc);
               //console.log('Partidas insertadas: '+gamesInserted.length+', de: '+gamesFiltered.length);
               if(gamesInserted.length === gamesFiltered.length) {
@@ -801,7 +799,7 @@ router.post('/remove_player', (req, res) => {
             return handleError(err);
           }
 
-          res.status(200).send({text: removedPlayerName + ' eliminad@ de la partida',status:200});
+          res.status(200).send({text: removedPlayerName + ' eliminad@ de la partida',status:200, content: doc});
 
         });
         
