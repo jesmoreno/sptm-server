@@ -364,7 +364,7 @@ router.post('/add_friend', (req, res) => {
           from: "sporttimecenter@gmail.com",
           to: doc.email,
           subject: "Amigos en sptm",
-          html: "<h1 style='font-family:sans-serif;color:salmon'>SPTM APP</h1>"+"<p>"+username+" te ha añadido como amigo. No olvides añadirle a tus partidas!</p><br><img src='http://huilasport.com/wp-content/uploads/2018/11/gif-varios-deportes.gif' alt='Funny image'>"
+          html: "<h1 style='font-family:sans-serif;color:salmon'>SPTM APP</h1><p><span style='font-weight:bold;'>"+username+"</span> te ha añadido como amigo. No olvides añadirle a tus partidas!</p><br><img src='http://huilasport.com/wp-content/uploads/2018/11/gif-varios-deportes.gif' alt='Funny image'>"
         };
 
         // send mail with defined transport object
@@ -454,18 +454,20 @@ router.post('/update_profile', (req, res) => {
     User.findOne({userName: data}, (err, user) => {
 
         if (err) return handleError(err);
-        //console.log(user);
+        console.log(user);
 
         if(user){// Si me devuelve el documento es que existe ya ese nombre
           res.status(403).send({text: 'Nombre de usuario ya existente', status: 403, errorCodeToShow: 0});
         
         }else{//No existe el nombre por lo que lo guardo
           
+          console.log('Insertar nombre de usuario no existente');
           var conditions = {userName: username}, update = { $set: {"userName":data}}, options = {multi: false};
           User.update(conditions, update,options,callback);
             function callback (err, data2){
               if(err) return handleError(err);
 
+              console.log('Dato actualizado: '+data2)
               //Añado a la lista de amigos ese nombre y elimino el viejo el nuevo (data)
 
               var conditionsAdd= {friends: username}, update = { $push: {friends: data} }, options = {multi: true};
@@ -479,33 +481,38 @@ router.post('/update_profile', (req, res) => {
                   if(err) return handleError(err);
                   //console.log(data4);
 
-                  //En las partidas actualizo tmb el nombre de usuario
+                  //En las partidas actualizo tmb el nombre de usuario, si hay partidas que actualizar
 
                   Game.find({players: {$elemMatch:{_id: userId}}}, function(err,gamesDocs){    
                     
                     var docUpdated = [];
 
-                    gamesDocs.forEach(function(gameDoc,index,allDocs){
-                      var pos = gameDoc.players.findIndex(function(e){
-                        return e._id == this.value;
-                      },{value: userId});
-
-                      gameDoc.players[pos].playerName = data;
-
-                      gameDoc.save(function(err){
-                        if (err){
-                          res.status(500).send({ text: 'Fallo actualizando nombre en lista de partidas', status: 500 });
-                          return handleError(err);
-                        }
-
-                        docUpdated.push(data);
-                        if(docUpdated.length === allDocs.length){
-                          sendResponse();
-                        }
-
-                      })
-                      
-                    });
+                    if(gamesDocs.length){
+                      gamesDocs.forEach(function(gameDoc,index,allDocs){
+                        var pos = gameDoc.players.findIndex(function(e){
+                          return e._id == this.value;
+                        },{value: userId});
+  
+                        gameDoc.players[pos].playerName = data;
+  
+                        gameDoc.save(function(err){
+                          if (err){
+                            res.status(500).send({ text: 'Fallo actualizando nombre en lista de partidas', status: 500 });
+                            return handleError(err);
+                          }
+  
+                          docUpdated.push(data);
+                          if(docUpdated.length === allDocs.length){
+                            sendResponse();
+                          }
+  
+                        })
+                        
+                      });
+                    }else{
+                      sendResponse();
+                    }
+                    
                   });
                 }
                 
@@ -721,8 +728,7 @@ router.post('/update_games', (req, res) => {
               from: "sporttimecenter@gmail.com",
               to: doc.email,
               subject: "Partida: "+gameInfo.name,
-              text: doc.userName+" se ha añadido a la partida"+gameInfo.name,
-              html: "<p>"+doc.userName+" se ha añadido a la partida: "+gameInfo.name+"</p>"
+              html: "<h1 style='font-family:sans-serif;color:salmon'>SPTM APP</h1><p><span style='font-weight: bold;'>"+doc.userName+"</span> se ha añadido a la partida: <span style='font-weight: bold;'>"+gameInfo.name+"</span></p>"
             };
 
             // send mail with defined transport object
