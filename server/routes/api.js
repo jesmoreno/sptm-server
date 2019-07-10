@@ -461,7 +461,7 @@ router.post('/update_profile', (req, res) => {
         
         }else{//No existe el nombre por lo que lo guardo
           
-          console.log('Insertar nombre de usuario no existente');
+          //console.log('Insertar nombre de usuario no existente');
           var conditions = {userName: username}, update = { $set: {"userName":data}}, options = {multi: false};
           User.update(conditions, update,options,callback);
             function callback (err, data2){
