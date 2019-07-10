@@ -357,35 +357,25 @@ router.post('/add_friend', (req, res) => {
     User.findOneAndUpdate({userName: friendName},{$push: {friends: username}}).then(function(doc2){
       res.status(200).send({text: friendName+' añadido a la lista', status: 200});
 
-      /*User.findOne({userName: friendName}).then(function(doc){
+      User.findOne({userName: friendName}).then(function(doc){
         //Envio correo al amigo añadido
+        console.log('email to: '+doc.email);
         var message = {
           from: "sporttimecenter@gmail.com",
           to: doc.email,
           subject: "Amigos en sptm",
-          text: friendName+" te ha añadido como amigo",
-          html: "<p>"+friendName+" te ha añadido como amigo"+"</p>"
+          html: "<h1 style='font-family:sans-serif;color:salmon'>SPTM APP</h1>"+"<p>"+username+" te ha añadido como amigo. No olvides añadirle a tus partidas!</p><br><img src='http://huilasport.com/wp-content/uploads/2018/11/gif-varios-deportes.gif' alt='Funny image'>"
         };
-
-        var message = {
-          from: "sporttimecenter@gmail.com",
-          to: "jesusbasket8@gmail.com",
-          subject: "Amigos en sptm",
-          text: friendName+" te ha añadido como amigo",
-          html: "<p>"+friendName+" te ha añadido como amigo"+"</p>"
-        };
-
-        console.log(gmail.email);
-        console.log(gmail.pass);
 
         // send mail with defined transport object
         transporter.sendMail(message, function(error, info){
           if(error){
-            return console.log(error);
+            console.log(error);
+            return error;
           }
           console.log('Message sent: ' + info.response);
         });
-      })*/
+      })
     });
   });
   
@@ -723,7 +713,7 @@ router.post('/update_games', (req, res) => {
 
         res.status(200).send({ text: 'Añadido a la partida.', status: 200, content: gameInfo});
 
-        /*gameInfo.players.forEach(function(player){
+        gameInfo.players.forEach(function(player){
 
           User.findById(player._id,function(err,doc){
 
@@ -743,7 +733,7 @@ router.post('/update_games', (req, res) => {
               console.log('Message sent: ' + info.response);
             });
           })
-        })*/
+        })
       })
     }
 
