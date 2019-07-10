@@ -11,7 +11,7 @@ var expressJwt = require('express-jwt');
 //Conexion con la BD
 var db = mongoose.connection;
 
-mongoose.connect(config.database);
+mongoose.connect(config.database, {useNewUrlParser: true });
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
 // we're connected!
@@ -29,17 +29,17 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
 // Point static path to dist
-app.use(express.static(path.join(__dirname, '../sptm-app/sptm-app/dist')));
+app.use(express.static(path.join(__dirname, '../sptm-app/dist')));
 
 // Middleware para el control de acceso con el token
-app.use( 
+app.use(
   config.rootPath, // Ruta raíz de los servicios del API
-  expressJwt( 
-        { 
-            secret : config.secret 
-        } 
+  expressJwt(
+        {
+            secret : config.secret
+        }
     )
-  .unless( { path: [config.rootPath+'/register-user',config.rootPath+'/authenticate']} ) // Ruta del servicio de login 
+  .unless( { path: [config.rootPath+'/register-user',config.rootPath+'/authenticate']} ) // Ruta del servicio de login
 );
 
 // Set our api routes
@@ -47,7 +47,7 @@ app.use(config.rootPath, api);
 
 // Catch all other routes and return the index file
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../sptm-app/sptm-app/dist/index.html'));
+  res.sendFile(path.join(__dirname, '../sptm-app/dist/index.html'));
 });
 
 /**
@@ -64,4 +64,4 @@ const server = http.createServer(app);
 /**
  * Listen on provided port, on all network interfaces.
  */
-server.listen(port, () => console.log(`API running on localhost:${port}`));
+server.listen(port, '0.0.0.0' ,() => console.log(`API running on localhost:${port}`));

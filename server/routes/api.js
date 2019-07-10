@@ -2,9 +2,20 @@ const express = require('express');
 const router = express.Router();
 const config = require('../../config');
 const User = require('../../models/user');
+const Game = require('../../models/games');
 const jwt = require( 'jsonwebtoken' );
 var mongoose = require('mongoose'); //Para generar el object ID
+const nodemailer = require("nodemailer"); //Envio de emails con notificaciones
 
+const gmail = require('../../config/keys'); //Contraseña gmail
+
+var transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+         user: gmail.email,
+         pass: gmail.pass
+     }
+ });
 
 function getParameters(objIn,fieldName) {
 
@@ -15,14 +26,16 @@ function getParameters(objIn,fieldName) {
   return obj.value;
 }
 
-
 ////////////////////////////////////////////////////////////* GETs *////////////////////////////////////////////////////
-router.get('/', (req, res) => {
-  res.send('api works');
-});
 
 //Recibe como parametros el nombre de usuario, numero de elementos a devolver,codigo postal y ciudad
 router.get('/games_info', (req, res) => {
+
+
+  //Callback ejecutado despues de cada documento recuperado en el bucle
+  function sendResponse (games) {
+    res.status(200).send(games);
+  }
 
   var userName = req.query.userName;
   var userGames;
@@ -31,39 +44,56 @@ router.get('/games_info', (req, res) => {
   var pc = req.query.postCode;
   var sport = req.query.sport;
 
-  //console.log(req.query);
   //Si recibe nombre de usuario filtra las partidas de ese usuario en la localizacion indicada con ciudad y CP y con el deporte elegido (inicialmente el favorito del usuario)
   if(userGames){
 
-    User.find({$and: [{"games.players": {$elemMatch: {playerName: userName} }},{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
-      
-
+    User.findOne({userName: userName}, function(err, doc){
       if (err){
-        res.status(500).send({ text: 'Server Error', status: 500 });
+        res.status(500).send({ text: 'Fallo recuperando la información de las partidas del usuario.', status: 500 });
         return handleError(err);    
-      } 
-
-      var games;
-      docs.length ? games = docs[0].games : games = docs;
-
-      if(games.length){
-
-          games = games.filter(function(element){
-            if(element.sport === req.query.sport){
-              return true;
-            }else{
-              return false;
-            }
-          });
-
       }
 
-      res.status(200).send(games);
+      if(doc.games.length){
+
+        var gamesFiltered = doc.games.filter(function(game){
+          return (game.sport == this.sportFilter && game.postCode == this.pcFilter);
+        },{sportFilter: sport, pcFilter: pc})
+
+        if(gamesFiltered.length){ 
+
+          var gamesInserted = [];
+
+          gamesFiltered.forEach(function(game){
+            Game.findById(game._id,function(err, gameDoc){
+
+              if (err){
+                res.status(500).send({ text: 'Fallo recuperando la información de las partidas del usuario.', status: 500 });
+                return handleError(err);    
+              }
+
+              gamesInserted.push(gameDoc);
+              //console.log('Partidas insertadas: '+gamesInserted.length+', de: '+gamesFiltered.length);
+              if(gamesInserted.length === gamesFiltered.length) {
+                sendResponse(gamesInserted);
+              }
+            })
+          });
+
+        }else{// Sus partidas no cumplen los filtros
+          res.status(200).send([]);
+        }
+
+
+      }else{
+        //No tiene partidas
+        res.status(200).send([])
+      }
+      
 
     })
 
   }else{//Si el nombre de usuario es null o undefined, devuelvo todas las partidas de la localizacion (ciudad y CP lo indican) del deporte elegido
-    User.find({$nor: [{'games.players':{$elemMatch: {playerName: userName}}}], $and: [{"games.sport": sport},{"games.address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
+    Game.find({$nor: [{'players':{$elemMatch: {playerName: userName}}}], $and: [{"sport": sport},{"address.address_components": {$elemMatch: {short_name: city,short_name:pc}}}]}, function(err, docs){
       if (err){
         res.status(500).send({ text: 'Server Error', status: 500 });
         return handleError(err);
@@ -72,65 +102,68 @@ router.get('/games_info', (req, res) => {
       var games = [];
 
       if(docs.length){
-        
         docs.forEach(function(doc){
-          doc.games.forEach(function(game){
-            games.push(game);
-          })
+          games.push(doc);
         })
-
-      }
-
-      if(games.length){
-        games = games.filter(function(element){
-          if(element.sport === req.query.sport){
-            return true;
-          }else{
-            return false;
-          }
-        })  
       }
 
       res.status(200).send(games);
+
     })
   }
 });
 
-
-
 //Devuelve todos los usuarios disponibles para agregar a amigos
 router.get('/friends', (req, res) => {
-  
-  var username = req.query.userName;
+
+  var username = req.query.username;
   var filter = req.query.filter;
-  var sort = req.query.sortOrder;
-  var pageNumber = req.query.pageNumber;
-  var pageSize =req.query.pageSize;
   //Para el filtrado por letras del nombre
   var regExp = new RegExp(filter);
 
-  //Indice para coger los usuarios según la página y el numero de elementos por pagina 
-  startIndex = pageNumber*pageSize;
-  endIndex = parseInt(startIndex)+parseInt(pageSize);
+  if(req.query.sortOrder){
 
-  User.find({friends:username})
-  .where({userName: regExp})
-  .sort({sport:sort})
-  .then(function(users){
+    var sort = req.query.sortOrder;
+    var pageNumber = req.query.pageNumber;
+    var pageSize =req.query.pageSize;
+    //Indice para coger los usuarios según la página y el numero de elementos por pagina
+    startIndex = pageNumber*pageSize;
+    endIndex = parseInt(startIndex)+parseInt(pageSize);
 
-    var usersFound = [];
-    //me quedo con la parte del array de amigos correspondiente según página y el numero de elementos por pagina
-    selectedUsers = users.slice(startIndex,endIndex);
+    User.find({friends:username})
+    .where({userName: regExp})
+    .sort({sport:sort})
+    .then(function(users){
 
-    selectedUsers.forEach(function(user){
-      usersFound.push({name: user.userName,favSport:user.sport, totalFriends: users.length })
-    })
+      var usersFound = [];
+      //me quedo con la parte del array de amigos correspondiente según página y el numero de elementos por pagina
+      selectedUsers = users.slice(startIndex,endIndex);
 
-    //if(usersFound.length===0) usersFound.push({totalFriends: 0});
+      selectedUsers.forEach(function(user){
+        usersFound.push({id: user._id,name: user.userName,favSport:user.sport, totalFriends: users.length })
+      })
 
-    res.status(200).send(usersFound);
+      //if(usersFound.length===0) usersFound.push({totalFriends: 0});
 
-  });
+      res.status(200).send(usersFound);
+
+    });
+
+  }else{
+
+    User.find({friends:username})
+    .where({userName: regExp})
+    .then(function(users){
+
+      var usersFound = [];
+
+      users.forEach(function(user){
+        usersFound.push({id: user._id,name: user.userName,favSport:user.sport, totalFriends: users.length })
+      })
+
+      res.status(200).send(usersFound);
+    });
+  }
 
 });
 
@@ -208,12 +241,12 @@ router.get('/user_info', (req, res) => {
 router.post('/register-user', (req, res) => {
 
   //console.log(req.body.params.updates)
-  var name = req.body.params.updates[0].value;
-  var email = req.body.params.updates[1].value;
-  var passwd = req.body.params.updates[2].value;
-  var sport = req.body.params.updates[3].value;
-  var city = req.body.params.updates[4].value;
-  var pc = req.body.params.updates[5].value;
+  var name = getParameters(req.body.params.updates,'name');
+  var email = getParameters(req.body.params.updates,'email');
+  var passwd = getParameters(req.body.params.updates,'password');
+  var sport = getParameters(req.body.params.updates,'favSport');
+  var city = getParameters(req.body.params.updates,'city');
+  var pc = getParameters(req.body.params.updates,'pc');
 
 
   User.count({email:email}, (err,  count) => {
@@ -301,7 +334,7 @@ router.post('/authenticate', (req, res) => {
       } else {
         //user valid
         token = jwt.sign( { admin : req.body.admin }, config.secret, { expiresIn: 3600 } );
-        resObject = {text: 'Login correcto.',token: token ,status: 200};
+        resObject = {text: 'Login correcto.',token: token ,status: 200, userId: user._id};
       }
     }
     //console.log('token: '+resObject.content);
@@ -323,6 +356,26 @@ router.post('/add_friend', (req, res) => {
     //Añado usuario a la lista del amigo
     User.findOneAndUpdate({userName: friendName},{$push: {friends: username}}).then(function(doc2){
       res.status(200).send({text: friendName+' añadido a la lista', status: 200});
+
+      User.findOne({userName: friendName}).then(function(doc){
+        //Envio correo al amigo añadido
+        console.log('email to: '+doc.email);
+        var message = {
+          from: "sporttimecenter@gmail.com",
+          to: doc.email,
+          subject: "Amigos en sptm",
+          html: "<h1 style='font-family:sans-serif;color:salmon'>SPTM APP</h1><p><span style='font-weight:bold;'>"+username+"</span> te ha añadido como amigo. No olvides añadirle a tus partidas!</p><br><img src='http://huilasport.com/wp-content/uploads/2018/11/gif-varios-deportes.gif' alt='Funny image'>"
+        };
+
+        // send mail with defined transport object
+        transporter.sendMail(message, function(error, info){
+          if(error){
+            console.log(error);
+            return error;
+          }
+          console.log('Message sent: ' + info.response);
+        });
+      })
     });
   });
   
@@ -359,9 +412,9 @@ router.post('/remove_friend', (req, res) => {
 router.post('/update_password', (req, res) => {
 
   //console.log(req.body.params.updates[0].value);
-  var username = req.body.params.updates[0].value;
-  var oldPass = req.body.params.updates[1].value;
-  var newPass = req.body.params.updates[2].value;
+  var username = getParameters(req.body.params.updates,'userName');
+  var oldPass = getParameters(req.body.params.updates,'oldPassword');
+  var newPass = getParameters(req.body.params.updates,'newPassword');
 
   User.findOne({userName:username, password: oldPass},function(err, data){
       if(err) return handleError(err);
@@ -384,30 +437,37 @@ router.post('/update_password', (req, res) => {
 //////////////////////// ACTUALIZA EL PERFIL DEL USUARIO, NOMBRE;CIUDAD,DEPORTE /////////////////////////////////////////////////
 router.post('/update_profile', (req, res) => {
 
-  //console.log(req.body.params.updates[0].value);
-  var username = req.body.params.updates[0].value;
-  var field = req.body.params.updates[1].value;
-  var data = req.body.params.updates[2].value;
+  var userId = req.body.params.updates[0].value;
+  var username = req.body.params.updates[1].value;
+  var field = req.body.params.updates[2].value;
+  var data = req.body.params.updates[3].value;
 
   //console.log('Nombre de usuario: '+username+', Campo: '+field+', Valor: '+data);
+
+  //Callback ejecutado despues de cada documento actualizado en el bucle
+  function sendResponse () {
+    res.status(200).send({text:"Perfil actualizado",status:200});
+  }
 
   if(field === 'newName'){
 
     User.findOne({userName: data}, (err, user) => {
 
         if (err) return handleError(err);
-        //console.log(user);
+        console.log(user);
 
         if(user){// Si me devuelve el documento es que existe ya ese nombre
           res.status(403).send({text: 'Nombre de usuario ya existente', status: 403, errorCodeToShow: 0});
         
         }else{//No existe el nombre por lo que lo guardo
           
+          //console.log('Insertar nombre de usuario no existente');
           var conditions = {userName: username}, update = { $set: {"userName":data}}, options = {multi: false};
           User.update(conditions, update,options,callback);
             function callback (err, data2){
               if(err) return handleError(err);
 
+              console.log('Dato actualizado: '+data2)
               //Añado a la lista de amigos ese nombre y elimino el viejo el nuevo (data)
 
               var conditionsAdd= {friends: username}, update = { $push: {friends: data} }, options = {multi: true};
@@ -420,7 +480,40 @@ router.post('/update_profile', (req, res) => {
                 function callback3 (err,data4){
                   if(err) return handleError(err);
                   //console.log(data4);
-                  res.status(200).send({text: 'Perfil actualizado', status: 200});
+
+                  //En las partidas actualizo tmb el nombre de usuario, si hay partidas que actualizar
+
+                  Game.find({players: {$elemMatch:{_id: userId}}}, function(err,gamesDocs){    
+                    
+                    var docUpdated = [];
+
+                    if(gamesDocs.length){
+                      gamesDocs.forEach(function(gameDoc,index,allDocs){
+                        var pos = gameDoc.players.findIndex(function(e){
+                          return e._id == this.value;
+                        },{value: userId});
+  
+                        gameDoc.players[pos].playerName = data;
+  
+                        gameDoc.save(function(err){
+                          if (err){
+                            res.status(500).send({ text: 'Fallo actualizando nombre en lista de partidas', status: 500 });
+                            return handleError(err);
+                          }
+  
+                          docUpdated.push(data);
+                          if(docUpdated.length === allDocs.length){
+                            sendResponse();
+                          }
+  
+                        })
+                        
+                      });
+                    }else{
+                      sendResponse();
+                    }
+                    
+                  });
                 }
                 
               }
@@ -465,193 +558,251 @@ router.post('/update_profile', (req, res) => {
 router.post('/new_game', (req, res) => {
 
 
-  var username = req.body.params.updates[0].value;
-  var gameName = req.body.params.updates[1].value;
-  var sport = req.body.params.updates[2].value;
-  var maxPlayers = req.body.params.updates[3].value;
-  var date = req.body.params.updates[4].value;
-  var address = req.body.params.updates[5].value;
+  var username = getParameters(req.body.params.updates,'host');
+  var gameName = getParameters(req.body.params.updates,'name');
+  var sport = getParameters(req.body.params.updates,'sport');
+  var maxPlayers = getParameters(req.body.params.updates,'maxPlayers');
+  var date = getParameters(req.body.params.updates,'date');
+  var address = getParameters(req.body.params.updates,'address');
+  var userId = getParameters(req.body.params.updates,'userId');
+  var pc = getParameters(req.body.params.updates,'postCode');
 
-  User.find({games: {$elemMatch: {host:username,name:gameName}}}, (err, doc) => {
+  Game.find({name: gameName, sport: sport}, (err, docs) => {
+    if (err){ 
+      res.status(500).send({ text: 'Server Error', status: 500 });    
+      return handleError(err);
+    }
 
+    if(docs.length){//Si existe el nombre devuelvo respuesta de que ya existe
+      res.status(403).send({text:'Nombre de partida ya existente, por favor, introduce uno nuevo.',status:403})
+    }else{
+      //Genero id para la partida nueva
+      var gameId = {
+        _id : mongoose.Types.ObjectId(),
+        sport: sport,
+        postCode: pc
+      };
 
+      //Inserto el ID de la nueva partida en el array del jugador que la ha creado
+      var conditions = {userName: username}, update = { $push: {games:gameId}}, options = {multi: false};
+      User.update(conditions, update,options,callback);
+      function callback (err, data){
         if (err){
-          res.status(500).send({ text: 'Server Error', status: 500 });
-          
+          res.status(500).send({ text: 'Fallo creando la partida', status: 500 });
           return handleError(err);
-        } 
+        }
 
-        if(doc.length){
-          res.status(403).send({text:'Nombre de partida ya existente, por favor, introduce uno nuevo.',status:403})
-        }else{
-
-          var obj = {
-            host: username,
-            name: gameName,
-            sport: sport,
-            maxPlayers: maxPlayers,
-            date: new Date(date),
-            address: {
-              address_components: address.address_components,
-              formatted_address: address.formatted_address,
-              location: {
-                type: 'Point',
+        //Genero nuevo documento en la coleccion de partidas.
+        var gameObj = new Game({
+          _id: gameId,
+          host: username,
+          name: gameName,
+          sport: sport,
+          maxPlayers: maxPlayers,
+          date: new Date(date),
+          address: {
+            address_components: address.address_components,
+            formatted_address: address.formatted_address,
+            location: {
+              type: 'Point',
                 coordinates: [address.location.lng, address.location.lat]
               },
               place_id: address.place_id
-            },
-            players: [{
-              playerName: username
-            }]
+          },
+          players: [{
+            _id: userId,
+            playerName: username
+          }]
+        });
+
+        gameObj.save(function(err) {
+          if (err){
+            res.status(500).send({ text: 'Fallo creando la partida', status: 500 });
+            return handleError(err);
           }
 
-          var conditions = {userName: username}, update = { $push: {games:obj}}, options = {multi: false};
-          User.update(conditions, update,options,callback);
+          //Actualizada correctamente la BBDD con la partida creada.
+          res.status(200).send({text:'Partida creada correctamente.',status:200});
+        });     
+      }
 
-          function callback (err, data){
-           if (err){
-              res.status(500).send({ text: 'Server Error', status: 500 });
-              return handleError(err);
-            }
-            //Actualizada correctamente la BBDD con la partida creada.
-            res.status(200).send({text:'Partida creada correctamente.',status:200});
-          }
-    
-        }   
-  });
+    }//cierro else
+
+  })
 
 });
 ////////////////////////////// ELIMINA LA PARTIDA SELECIONADA ////////////////////////////////////// 
 
 router.post('/remove_game', (req, res) => {
 
-  var gameName = getParameters(req.body.params.updates,'name');
-  var players = getParameters(req.body.params.updates,'players');
+  var gameId = getParameters(req.body.params.updates,'_id');
 
-  //Callback ejecutado despues de cada documento recuperado en el bucle
   function sendResponse () {
     res.status(200).send({text:'Partida eliminada.',status:200});
   }
 
-  var updatedDocs = [];
+  Game.deleteOne({_id:gameId}, function(err) {
+    if (err){
+      res.status(500).send({ text: 'Error eliminando la partida, intentar más tarde.', status: 500 });
+      return handleError(err);     
+    }
 
+    var updatedDocs = [];
 
-  players.forEach(function(username){
+    User.find({games: {$elemMatch: {_id: gameId}}}, function(err, docs){
 
-      User.findOne({userName: username.playerName}, function(err,doc){
-
-        if (err){
-          res.status(500).send({ text: 'Error eliminando la partida, intentar más tarde.', status: 500 });
-          return handleError(err);     
-        }
+      docs.forEach(function(doc){
 
         var gameIndex = doc.games.findIndex(function(game){
-          return game.name === this.value;
-        },{value: gameName});
+          return game._id === this.value;
+        },{value: gameId});
 
         doc.games.splice(gameIndex,1);
-
+        
         //Guardo el documento modificado
         doc.save(function(err, updatedDoc){
           if (err) return handleError(err);
-            //console.log('Documento actualizado');
-            updatedDocs.push(username.playerName);
-            if(updatedDocs.length === players.length){
+            updatedDocs.push(updatedDoc);
+            if(updatedDocs.length === docs.length){
               sendResponse();
             }
             
         })
-        
+
       })
-    }) 
 
+    })
 
+  });
 
 }); 
 
-/////////////////////////////////////// CREO LA PARTIDA PARA EL USUARIO /////////////////////////////////7
+/////////////////////////////////////// CREO LA PARTIDA PARA EL USUARIO /////////////////////////////////
 
 router.post('/update_games', (req, res) => {
 
-  var gameName = getParameters(req.body.params.updates,'name');
-  var newPlayerName = getParameters(req.body.params.updates,'userToAdd');
-  var host = getParameters(req.body.params.updates,'host');
+  var newPlayerInfo = getParameters(req.body.params.updates,'userToAdd');
+  var newPlayerName = newPlayerInfo.name;
+  var newPlayerId = newPlayerInfo.id;
+
   var sport = getParameters(req.body.params.updates,'sport');
-  var maxPlayers = getParameters(req.body.params.updates,'maxPlayers');
-  var date = getParameters(req.body.params.updates,'date');
-  var address = getParameters(req.body.params.updates,'address');
-  var playersOld = getParameters(req.body.params.updates,'players');
-  var playersNew = playersOld.slice();
-  playersNew.push({_id:mongoose.Types.ObjectId(), playerName: newPlayerName})
-  
-  
-  //Primero creo la partida para el usuario añadido
-  var obj = {
-    host: host,
-    name: gameName,
-    sport: sport,
-    maxPlayers: maxPlayers,
-    date: date,
-    address: {
-      address_components: address.address_components,
-      formatted_address: address.formatted_address,
-      location: {
-        type: 'Point',
-        coordinates: address.location.coordinates
-      },
-        place_id: address.place_id
-    },
-    players: playersNew
-  }
+  var postalCode = getParameters(req.body.params.updates,'address').address_components[6].long_name;
+  var gameId = getParameters(req.body.params.updates,'_id');
 
+  Game.findOne({_id:gameId}, function(err, gameInfo){
 
-  var updatedDocs = [];
-
-  //Callback ejecutado despues de cada documento recuperado en el bucle
-  function sendResponse () {
-    res.status(200).send({text:'Añadido a la partida.',status:200});
-  }
-
-
-  var conditions = {userName: newPlayerName}, update = { $push: {games:obj}}, options = {multi: false};
-  User.update(conditions, update,options,callback);
-  function callback (err, data){
     if (err){
-      res.status(500).send({ text: 'Server Error', status: 500 });
+      res.status(500).send({ text: 'Fallo añadiendo a la partida.', status: 500});
       return handleError(err);
     }
-    
-    updatedDocs.push(newPlayerName);
 
-    playersOld.forEach(function(username){
+    var obj = {
+      _id: gameInfo._id,
+      sport: sport,
+      postCode: postalCode
+    }
 
-      User.findOne({userName: username.playerName}, function(err,doc){
+    var conditions = {userName: newPlayerName}, update = { $push: {games:obj}}, options = {multi: false};
+    User.update(conditions, update,options,callback);
 
+    function callback (err, data){
+      if (err){
+        res.status(500).send({ text: 'Fallo añadiendo a la partida.', status: 500 });
+        return handleError(err);
+      }
+
+      gameInfo.players.push({_id: newPlayerId, playerName: newPlayerName});
+      gameInfo.save(function(err){
         if (err){
-          res.status(500).send({ text: 'Error añadiendo a la partida, intentar más tarde.', status: 500 });
-          return handleError(err);     
+          res.status(500).send({ text: 'Fallo añadiendo a la partida.', status: 500});
+          return handleError(err);
         }
 
-        var gameIndex = doc.games.findIndex(function(game){
-          return game.name === this.value;
-        },{value: gameName});
+        res.status(200).send({ text: 'Añadido a la partida.', status: 200, content: gameInfo});
 
-        doc.games[gameIndex].players.push({_id:mongoose.Types.ObjectId(), playerName: newPlayerName});
+        gameInfo.players.forEach(function(player){
 
-        //Guardo el documento modificado
-        doc.save(function(err, updatedDoc){
-          if (err) return handleError(err);
-            //console.log('Documento actualizado');
-            updatedDocs.push(username.playerName);
-            if(updatedDocs.length === playersNew.length){
-              sendResponse();
-            }
-            
+          User.findById(player._id,function(err,doc){
+
+            var message = {
+              from: "sporttimecenter@gmail.com",
+              to: doc.email,
+              subject: "Partida: "+gameInfo.name,
+              html: "<h1 style='font-family:sans-serif;color:salmon'>SPTM APP</h1><p><span style='font-weight: bold;'>"+doc.userName+"</span> se ha añadido a la partida: <span style='font-weight: bold;'>"+gameInfo.name+"</span></p>"
+            };
+
+            // send mail with defined transport object
+            transporter.sendMail(message, function(error, info){
+              if(error){
+                return console.log(error);
+              }
+              console.log('Message sent: ' + info.response);
+            });
+          })
         })
-        
       })
-    })   
-  }
+    }
+
+  })
+
+});
+
+//////////////////////////////////////////// ELIMINO AL JUGADOR DE LA PARTIDA //////////////////////////////////////
+
+router.post('/remove_player', (req, res) => {
+
+  var userToRemove = getParameters(req.body.params.updates,'userToRemove');
+  var removedPlayerName = userToRemove.name;
+  var removedPlayerId = userToRemove.id;
+
+  var gameId = getParameters(req.body.params.updates,'_id');
+
+
+  Game.findById(gameId , function(err, doc){
+    if (err){
+      console.log(err);
+      res.status(500).send({ text: 'Fallo eliminando de la partida.', status: 500 });
+      return handleError(err);
+    }
+
+    doc.players = doc.players.filter(function(player){
+      return  player._id != removedPlayerId;
+    });
+
+    doc.save(function (err, doc) {
+      if (err){
+        res.status(500).send({ text: 'Fallo eliminando de la partida.', status: 500 });
+        return handleError(err);
+      }
+
+      //Elimino del documento del usuario la partidas
+      User.findById(removedPlayerId, function(err,doc2){
+        if (err){
+          console.log(err);
+          res.status(500).send({ text: 'Fallo eliminando de la partida.', status: 500 });
+          return handleError(err);
+        }
+
+        doc2.games = doc2.games.filter(function(game){
+          return game._id != gameId;
+        });
+
+
+        doc2.save(function (err, doc2) {
+          if (err){
+            res.status(500).send({ text: 'Fallo eliminando de la partida.', status: 500 });
+            return handleError(err);
+          }
+
+          res.status(200).send({text: removedPlayerName + ' eliminad@ de la partida',status:200, content: doc});
+
+        });
+        
+
+      })
+    });
+
+  });
 
 });
 
