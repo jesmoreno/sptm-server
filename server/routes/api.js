@@ -796,6 +796,22 @@ router.post('/remove_player', (req, res) => {
 
           res.status(200).send({text: removedPlayerName + ' eliminad@ de la partida',status:200, content: doc});
 
+          var message = {
+            from: "sporttimecenter@gmail.com",
+            to: doc2.email,
+            subject: "Partida: "+doc.name,
+            html: "<h1 style='font-family:sans-serif;color:salmon'>SPTM APP</h1><p><span style='font-weight: bold;'>"+doc2.userName+"</span> ha sido eliminado de la partida "+ "<span style='font-weight: bold;'>"+doc.name+"</span> por el host.</p><br><img src='https://i.pinimg.com/originals/11/3f/60/113f60be580a09ef0027073423d98f0f.gif' alt='sad face'>"
+          };
+
+          // send mail with defined transport object
+          transporter.sendMail(message, function(error, info){
+            if(error){
+              return console.log(error);
+            }
+            console.log('Message sent: ' + info.response);
+          });
+
+
         });
         
 
