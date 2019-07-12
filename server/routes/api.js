@@ -635,7 +635,13 @@ router.post('/new_game', (req, res) => {
 
 router.post('/remove_game', (req, res) => {
 
-  var gameId = getParameters(req.body.params.updates,'_id');
+  const gameId = getParameters(req.body.params.updates,'_id');
+  const gameName = getParameters(req.body.params.updates,'name');
+  const gameAddress = getParameters(req.body.params.updates,'address').formatted_address;
+  const gameDate = new Date (getParameters(req.body.params.updates,'date'));
+
+  const formattedDate = gameDate.getDate()+'-'+(gameDate.getMonth()+1)+'-'+gameDate.getFullYear()+' '+
+  gameDate.getHours()+':'+gameDate.getMinutes();
 
   function sendResponse () {
     res.status(200).send({text:'Partida eliminada.',status:200});
@@ -651,6 +657,8 @@ router.post('/remove_game', (req, res) => {
 
     User.find({games: {$elemMatch: {_id: gameId}}}, function(err, docs){
 
+      if (err) return handleError(err);
+
       docs.forEach(function(doc){
 
         var gameIndex = doc.games.findIndex(function(game){
@@ -662,10 +670,33 @@ router.post('/remove_game', (req, res) => {
         //Guardo el documento modificado
         doc.save(function(err, updatedDoc){
           if (err) return handleError(err);
-            updatedDocs.push(updatedDoc);
-            if(updatedDocs.length === docs.length){
-              sendResponse();
-            }
+          updatedDocs.push(updatedDoc);
+          
+          if(updatedDocs.length === docs.length){
+
+            //Envio notifiacioón a cada usuario
+            docs.forEach(function(doc){
+            
+              var message = {
+                from: "sporttimecenter@gmail.com",
+                to: doc.email,
+                subject: "Partida: "+gameName,
+                html: "<h1 style='font-family:sans-serif;color:salmon'>SPTM APP</h1><p>La partida <span style='font-weight: bold;'>"+gameName+"</span> ha sido eliminada por el host.</p><br>"
+                +"<p><span style='font-weight:bold;'>Dirección: </span>"+gameAddress+", con fecha "+formattedDate+"</p><br><img src='http://orig03.deviantart.net/e8f1/f/2012/339/9/6/eraser_by_kurutto13-d5n6mvn.gif' alt='Partida eliminada'>"
+              };
+    
+              // send mail with defined transport object
+              transporter.sendMail(message, function(error, info){
+                if(error){
+                  return console.log(error);
+                }
+                console.log('Message sent: ' + info.response);
+              });
+
+            });
+            
+            sendResponse();
+          }
             
         })
 
