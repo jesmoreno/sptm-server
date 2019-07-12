@@ -37,6 +37,7 @@ router.get('/games_info', (req, res) => {
     res.status(200).send(games);
   }
 
+
   var userName = req.query.userName;
   var userGames;
   req.query.userGames ? userGames=req.query.userGames : null;
@@ -54,6 +55,7 @@ router.get('/games_info', (req, res) => {
       }
 
       if(doc.games.length){
+
 
         var gamesFiltered = doc.games.filter(function(game){
           return (game.sport == this.sportFilter && game.postCode == this.pcFilter);
@@ -759,7 +761,7 @@ router.post('/update_games', (req, res) => {
               from: "sporttimecenter@gmail.com",
               to: doc.email,
               subject: "Partida: "+gameInfo.name,
-              html: "<h1 style='font-family:sans-serif;color:salmon'>SPTM APP</h1><p><span style='font-weight: bold;'>"+doc.userName+"</span> se ha añadido a la partida: <span style='font-weight: bold;'>"+gameInfo.name+"</span></p>"
+              html: "<h1 style='font-family:sans-serif;color:salmon'>SPTM APP</h1><p><span style='font-weight: bold;'>"+newPlayerName+"</span> se ha añadido a la partida: <span style='font-weight: bold;'>"+gameInfo.name+"</span></p>"
             };
 
             // send mail with defined transport object
